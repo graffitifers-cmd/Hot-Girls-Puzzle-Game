@@ -661,15 +661,48 @@ function buyVIP() {
   document.getElementById('menu-overlay').classList.remove('hidden');
 }
 
-function shareReferral() {
+  function shareReferral() {
   const botUsername = 'girls_puzzle_bot';
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
   
-  document.getElementById('ref-link').textContent = link;
-  document.getElementById('ref-link').style.display = 'block';
+  // Показываем ссылку
+  const refLinkEl = document.getElementById('ref-link');
+  refLinkEl.textContent = link;
+  refLinkEl.style.display = 'block';
   
-  tg.openTelegramLink(`https://t.me/${botUsername}?start=ref_${userId}`);
+  // Делаем ссылку выделяемой
+  refLinkEl.style.userSelect = 'text';
+  refLinkEl.style.webkitUserSelect = 'text';
+  refLinkEl.style.cursor = 'text';
+  refLinkEl.onclick = function() {
+    const range = document.createRange();
+    range.selectNodeContents(this);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+  
+  // Показываем попап с кнопками
+  tg.showPopup({
+    title: '🎁 Реферальная ссылка',
+    message: 'Скопируй ссылку и отправь другу:\n\n' + link,
+    buttons: [
+      { id: 'copy', type: 'default', text: '📋 Копировать' },
+      { id: 'share', type: 'default', text: '📤 Отправить' },
+      { type: 'cancel' }
+    ]
+  }, (buttonId) => {
+    if (buttonId === 'copy') {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => {
+          tg.showAlert('✅ Ссылка скопирована!');
+        });
+      }
+    } else if (buttonId === 'share') {
+      tg.openTelegramLink(link);
+    }
+  });
 }
 
 // ================= EVENT LISTENERS =================
@@ -709,6 +742,18 @@ document.getElementById('btn-retry').onclick = () => { document.getElementById('
 document.getElementById('btn-to-menu').onclick = showMenu;
 document.getElementById('btn-hint').onclick = () => {
   if (solved || timeUp) return;
+  
+  // Проверяем баланс
+  if (getTotalStars() < 1) {
+    tg.showAlert('💡 Для подсказки нужна 1 звезда!');
+    return;
+  }
+  
+  // Списываем 1 звезду
+  spendStars(1);
+  showToast('💡 Подсказка! -1⭐️');
+  
+  // Делаем ход
   for (let i = 0; i < tiles.length; i++) {
     if (parseInt(tiles[i].dataset.correct) !== i) {
       const target = tiles[parseInt(tiles[i].dataset.correct)];
