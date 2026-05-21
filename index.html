@@ -612,38 +612,39 @@ function shareReferral() {
   const botUsername = 'girls_puzzle_bot';
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
+  
+  // Показываем ссылку
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
-  refLinkEl.style.userSelect = 'text';
-  refLinkEl.style.webkitUserSelect = 'text';
-  refLinkEl.style.cursor = 'text';
-  refLinkEl.onclick = function() {
-    const range = document.createRange();
-    range.selectNodeContents(this);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  };
+  
+  // Создаём временное поле для копирования
+  const tempInput = document.createElement('textarea');
+  tempInput.value = link;
+  tempInput.style.position = 'fixed';
+  tempInput.style.top = '-1000px';
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  
+  // Показываем попап с упрощёнными кнопками
   tg.showPopup({
     title: '🎁 Реферальная ссылка',
-    message: 'Скопируй ссылку и отправь другу:\n\n' + link,
+    message: 'Ссылка скопирована в буфер обмена!\n\nОтправь её другу:',
     buttons: [
-      { id: 'copy', type: 'default', text: '📋 Копировать' },
-      { id: 'share', type: 'default', text: '📤 Отправить' },
-      { type: 'cancel' }
+      { id: 'ok', type: 'default', text: '✅ OK' }
     ]
-  }, (buttonId) => {
-    if (buttonId === 'copy') {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(link).then(() => { tg.showAlert('✅ Ссылка скопирована!'); });
-      }
-    } else if (buttonId === 'share') {
-      tg.openTelegramLink(link);
+  }, () => {
+    // Пробуем скопировать
+    try {
+      document.execCommand('copy');
+      tg.showAlert('✅ Ссылка скопирована!\n\nТеперь вставь её другу (Ctrl+V или долгое нажатие)');
+    } catch (err) {
+      tg.showAlert('Скопируй ссылку вручную:\n\n' + link);
     }
+    document.body.removeChild(tempInput);
   });
 }
-
+  
 // ================= EVENT LISTENERS =================
 document.addEventListener('DOMContentLoaded', init);
 document.getElementById('btn-menu').onclick = showMenu;
