@@ -205,7 +205,7 @@ const CONFIG = {
   BASE_IMAGE_PATH: '',
   IMAGE_EXTENSION: '.jpg',
   MAX_AUTO_PACKS: 15,
-  STORAGE_KEY: 'puzzle_game_v5',
+  STORAGE_KEY: 'puzzle_save_v6',
   REWARD_PER_WIN: (size) => size * 5,
   WEEKLY_BONUS_AMOUNT: 1,
   WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000
@@ -214,6 +214,7 @@ const CONFIG = {
 // ================= STATE =================
 const tg = window.Telegram.WebApp;
 tg.expand();
+tg.ready();
 
 let state = {
   starsEarned: 0,
@@ -233,6 +234,9 @@ let state = {
   isReferred: false
 };
 
+let saveTimeout = null;
+let isSaving = false;
+
 function getTotalStars() {
   return state.starsEarned + state.starsBought;
 }
@@ -241,19 +245,26 @@ let tiles = [], selected = null, solved = false, timeUp = false;
 let allPacks = [];
 
 // ================= INIT =================
-function init() {
+async function init() {
   document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#121212');
   document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#ffffff');
   document.documentElement.style.setProperty('--tg-btn', tg.themeParams.button_color || '#6a1b9a');
   document.documentElement.style.setProperty('--tg-btn-text', tg.themeParams.button_text_color || '#ffffff');
   
-  loadProgress();
+  // Ждём загрузки данных
+  await loadProgress();
+  
   checkReferral();
   generatePackList();
   updateBonusUI();
   updateUI();
   showMenu();
-  tg.ready();
+  
+  // Сохраняем при закрытии
+  tg.onClose(() => {
+    if (isSaving) return;
+    saveProgressSync();
+  });
   
   tg.BackButton.onClick(() => {
     if (state.isPlaying) showMenu();
@@ -290,54 +301,60 @@ function generatePackList() {
   }
 }
 
-// ================= PROGRESS - НАДЁЖНОЕ СОХРАНЕНИЕ =================
+// ================= PROGRESS - СИНХРОННОЕ СОХРАНЕНИЕ =================
 function loadProgress() {
-  try {
-    // 1. Пробуем загрузить из localStorage
-    const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      state = { ...state, ...parsed };
-      console.log('✅ Загружено из localStorage:', state);
+  return new Promise((resolve) => {
+    if (!tg.CloudStorage?.getItem) {
+      console.warn('CloudStorage не доступен');
+      resolve();
+      return;
     }
     
-    // 2. Пробуем CloudStorage (если есть)
-    if (tg.CloudStorage?.getItem) {
-      tg.CloudStorage.getItem(CONFIG.STORAGE_KEY, (err, value) => {
-        if (!err && value) {
-          try {
-            const cloudData = JSON.parse(value);
-            state = { ...state, ...cloudData };
-            console.log('✅ Загружено из CloudStorage:', state);
-            updateUI();
-            updateBonusUI();
-          } catch(e) { console.warn('CloudStorage parse error:', e); }
+    tg.CloudStorage.getItem(CONFIG.STORAGE_KEY, (err, value) => {
+      if (err) {
+        console.error('❌ Ошибка загрузки:', err);
+        resolve();
+        return;
+      }
+      
+      if (value) {
+        try {
+          const saved = JSON.parse(value);
+          state = { ...state, ...saved };
+          console.log('✅ Загружено:', state);
+        } catch(e) {
+          console.error('❌ Ошибка парсинга:', e);
         }
-      });
-    }
-  } catch(e) { 
-    console.error('❌ Load error:', e); 
-  }
+      }
+      resolve();
+    });
+  });
 }
 
 function saveProgress() {
-  try {
-    const data = JSON.stringify(state);
-    
-    // 1. Сохраняем в localStorage (главное!)
-    localStorage.setItem(CONFIG.STORAGE_KEY, data);
-    console.log('💾 Сохранено в localStorage');
-    
-    // 2. Пробуем CloudStorage (если есть)
-    if (tg.CloudStorage?.setItem) {
-      tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data, (err) => {
-        if (err) console.warn('⚠️ CloudStorage error:', err);
-        else console.log('💾 Сохранено в CloudStorage');
-      });
+  // Отменяем предыдущее сохранение
+  if (saveTimeout) clearTimeout(saveTimeout);
+  
+  // Сохраняем через 300мс (чтобы не спамить)
+  saveTimeout = setTimeout(() => {
+    saveProgressSync();
+  }, 300);
+}
+
+function saveProgressSync() {
+  if (isSaving || !tg.CloudStorage?.setItem) return;
+  
+  isSaving = true;
+  const data = JSON.stringify(state);
+  
+  tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data, (err) => {
+    isSaving = false;
+    if (err) {
+      console.error('❌ Ошибка сохранения:', err);
+    } else {
+      console.log('💾 Сохранено:', state);
     }
-  } catch(e) { 
-    console.error('❌ Save error:', e); 
-  }
+  });
 }
 
 // ================= UI =================
@@ -523,8 +540,10 @@ function checkWin() {
       state.completed[packId][state.difficulty] = true;
       const reward = CONFIG.REWARD_PER_WIN(state.difficulty);
       state.starsEarned += reward;
-      saveProgress(); // 🔥 ВАЖНО: сохраняем сразу!
       showToast(`🎉 Пройдено впервые! +${reward} ⭐️`);
+      
+      // СИНХРОННОЕ сохранение сразу!
+      saveProgressSync();
     } else {
       showToast(`✅ Пройдено! (Уже получено)`);
     }
@@ -571,7 +590,10 @@ function claimBonus() {
   if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
     state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT;
     state.lastBonusClaim = now;
-    saveProgress(); // 🔥 Сохраняем сразу!
+    
+    // СИНХРОННОЕ сохранение!
+    saveProgressSync();
+    
     updateBonusUI();
     updateUI();
     tg.showAlert(`🎁 Бонус получен! +${CONFIG.WEEKLY_BONUS_AMOUNT} ⭐️`);
@@ -597,7 +619,7 @@ function spendStars(amount) {
     state.starsEarned -= remaining;
   }
   
-  saveProgress();
+  saveProgressSync();
   updateUI();
 }
 
@@ -616,7 +638,6 @@ function unlockPacks(count, price) {
   locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   
   spendStars(price);
-  saveProgress();
   generatePackList();
   renderPacks();
   updateUI();
@@ -634,7 +655,7 @@ function buyVIP() {
   spendStars(60);
   state.vip = { active: true, until: Date.now() + 30 * 24 * 60 * 60 * 1000 };
   allPacks.forEach(p => { if (!p.isFree && !state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
-  saveProgress(); generatePackList(); renderPacks(); updateUI();
+  generatePackList(); renderPacks(); updateUI();
   tg.showAlert('👑 VIP активирован!');
   document.getElementById('vip-overlay').classList.add('hidden');
   document.getElementById('menu-overlay').classList.remove('hidden');
