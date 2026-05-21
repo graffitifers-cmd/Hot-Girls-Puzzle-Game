@@ -613,34 +613,34 @@ function shareReferral() {
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
   
-  // Показываем ссылку на экране
+  // Показываем ссылку
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
-  refLinkEl.style.userSelect = 'text';
-  refLinkEl.style.webkitUserSelect = 'text';
   
-  // Создаём скрытое поле для копирования
+  // Создаём временное поле
   const tempInput = document.createElement('textarea');
   tempInput.value = link;
   tempInput.style.position = 'fixed';
-  tempInput.style.top = '-1000px';
+  tempInput.style.top = '-9999px';
   document.body.appendChild(tempInput);
   
-  // Показываем простую кнопку
-  tg.showAlert('🎁 Твоя реферальная ссылка:\n\n' + link + '\n\n' +
-               '📋 Нажми "Копировать" ниже, затем вставь другу!', 
-               () => {
-                 // Копируем при закрытии окна
-                 tempInput.select();
-                 try {
-                   document.execCommand('copy');
-                   tg.showAlert('✅ Скопировано!\n\nТеперь вставь ссылку другу (Ctrl+V или долгое нажатие)');
-                 } catch (err) {
-                   tg.showAlert('Скопируй ссылку вручную:\nВыдели текст выше и нажми "Копировать"');
-                 }
-                 document.body.removeChild(tempInput);
-               });
+  // Копируем
+  tempInput.select();
+  tempInput.setSelectionRange(0, 99999); // Для мобильных
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      tg.showAlert('🎁 Ссылка скопирована!\n\n' + link + '\n\nВставь её другу в чат!');
+    } else {
+      tg.showAlert('📋 Скопируй ссылку вручную:\n\n' + link);
+    }
+  } catch (err) {
+    tg.showAlert('📋 Выдели ссылку ниже и скопируй:\n\n' + link);
+  }
+  
+  document.body.removeChild(tempInput);
 }  
   
 // ================= EVENT LISTENERS =================
