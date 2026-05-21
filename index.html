@@ -617,30 +617,60 @@ function shareReferral() {
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
+  refLinkEl.style.userSelect = 'text';
+  refLinkEl.style.webkitUserSelect = 'text';
+  refLinkEl.style.padding = '12px';
+  refLinkEl.style.background = 'rgba(255,255,255,0.1)';
+  refLinkEl.style.borderRadius = '8px';
+  refLinkEl.style.margin = '10px 0';
   
-  // Создаём временное поле
-  const tempInput = document.createElement('textarea');
-  tempInput.value = link;
-  tempInput.style.position = 'fixed';
-  tempInput.style.top = '-9999px';
-  document.body.appendChild(tempInput);
+  // Создаём кнопки, если их ещё нет
+  let copyBtn = document.getElementById('ref-copy-btn');
+  let shareBtn = document.getElementById('ref-share-btn');
   
-  // Копируем
-  tempInput.select();
-  tempInput.setSelectionRange(0, 99999); // Для мобильных
-  
-  try {
-    const successful = document.execCommand('copy');
-    if (successful) {
-      tg.showAlert('🎁 Ссылка скопирована!\n\n' + link + '\n\nВставь её другу в чат!');
-    } else {
-      tg.showAlert('📋 Скопируй ссылку вручную:\n\n' + link);
-    }
-  } catch (err) {
-    tg.showAlert('📋 Выдели ссылку ниже и скопируй:\n\n' + link);
+  if (!copyBtn) {
+    copyBtn = document.createElement('button');
+    copyBtn.id = 'ref-copy-btn';
+    copyBtn.className = 'btn btn-success';
+    copyBtn.style.marginTop = '10px';
+    copyBtn.textContent = '📋 Копировать ссылку';
+    refLinkEl.parentNode.insertBefore(copyBtn, refLinkEl.nextSibling);
+    
+    shareBtn = document.createElement('button');
+    shareBtn.id = 'ref-share-btn';
+    shareBtn.className = 'btn btn-accent';
+    shareBtn.style.marginTop = '10px';
+    shareBtn.textContent = '📤 Отправить другу';
+    refLinkEl.parentNode.insertBefore(shareBtn, copyBtn.nextSibling);
+    
+    // Обработчик копирования
+    copyBtn.onclick = function() {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = link;
+      tempInput.style.position = 'fixed';
+      tempInput.style.top = '-9999px';
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      
+      try {
+        document.execCommand('copy');
+        tg.showAlert('✅ Ссылка скопирована!\n\nТеперь вставь её другу (Ctrl+V или долгое нажатие)');
+      } catch (err) {
+        tg.showAlert('Скопируй ссылку вручную:\n\n' + link);
+      }
+      
+      document.body.removeChild(tempInput);
+    };
+    
+    // Обработчик отправки
+    shareBtn.onclick = function() {
+      // Открываем список чатов для выбора друга
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🎁 Играй в пазлы со мной!`);
+    };
   }
   
-  document.body.removeChild(tempInput);
+  // Показываем сообщение
+  tg.showAlert('🎁 Твоя реферальная ссылка:\n\n' + link + '\n\nНажми на кнопки ниже, чтобы скопировать или отправить!');
 }  
   
 // ================= EVENT LISTENERS =================
