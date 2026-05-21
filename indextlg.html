@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🧩 Puzzle Stars</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --tg-bg: var(--tg-theme-bg-color, #121212);
+      --tg-text: var(--tg-theme-text-color, #ffffff);
+      --tg-hint: var(--tg-theme-hint-color, #aaaaaa);
+      --tg-btn: var(--tg-theme-button-color, #6a1b9a);
+      --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+      --accent: #ff6f00;
+      --exclusive: #ff1744;
+      --success: #00e676;
+    }
+    * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+    body { margin:0; padding:0; background: var(--tg-bg); color: var(--tg-text); font-family: system-ui, -apple-system, sans-serif; display:flex; flex-direction:column; align-items:center; min-height:100vh; overflow-x:hidden; }
+    
+    #ui { width:100%; max-width:600px; padding:8px; display:flex; flex-direction:column; flex:1; }
+    #stats { display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.08); padding:10px 15px; border-radius:12px; margin-bottom:10px; font-size:14px; flex-wrap:wrap; gap:8px; }
+    .stat-item { display:flex; align-items:center; gap:5px; }
+    
+    #board-container { flex:1; display:flex; align-items:center; justify-content:center; min-height:200px; padding:5px; }
+    #board { display:grid; gap:2px; background:rgba(0,0,0,0.3); padding:4px; border-radius:12px; position:relative; }
+    .tile { background-size:cover; background-position:center; border-radius:6px; cursor:pointer; transition:transform 0.1s, box-shadow 0.1s; }
+    .tile:active { transform:scale(0.97); }
+    .tile.selected { outline:3px solid var(--accent); z-index:10; box-shadow:0 0 15px var(--accent); }
+    .tile.swapping { transition: background-position 0.15s ease; }
+    
+    .btn { background:var(--tg-btn); color:var(--tg-btn-text); border:none; padding:12px 20px; margin:4px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+    .btn:active { transform:scale(0.98); opacity:0.95; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-accent { background:var(--accent); }
+    .btn-exclusive { background:var(--exclusive); }
+    .btn-success { background:var(--success); color:#000; }
+    .btn-outline { background:transparent; border:2px solid var(--tg-btn); color:var(--tg-btn); }
+    
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; z-index:100; padding:20px 15px; overflow-y:auto; }
+    .overlay.hidden { display:none; }
+    .overlay h2 { margin:10px 0 15px; font-size:22px; text-align:center; }
+    
+    .pack-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px; width:100%; max-width:500px; margin:0 auto; }
+    .pack-card { background:rgba(255,255,255,0.08); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; position:relative; transition:all 0.2s; }
+    .pack-card:hover { transform:translateY(-2px); }
+    .pack-card.locked { opacity:0.7; }
+    .pack-card.completed { border:2px solid var(--success); }
+    .pack-thumb { width:100%; aspect-ratio:1; background:#333; border-radius:8px; margin-bottom:8px; background-size:cover; background-position:center; }
+    .pack-card.locked .pack-thumb { background:#222; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .pack-title { font-size:13px; font-weight:600; }
+    .pack-badge { position:absolute; top:5px; right:5px; background:var(--exclusive); color:#fff; padding:2px 6px; border-radius:8px; font-size:10px; }
+    .pack-badge.free { background:var(--success); color:#000; }
+    
+    .difficulty-row { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:15px 0; }
+    .diff-btn { background:rgba(255,255,255,0.1); color:var(--tg-text); border:none; padding:10px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
+    .diff-btn.active { background:var(--accent); font-weight:bold; }
+    
+    .unlock-package { background:rgba(255,255,255,0.08); border-radius:12px; padding:12px; margin:8px 0; width:100%; max-width:400px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:all 0.2s; }
+    .unlock-package:hover { background:rgba(255,255,255,0.12); }
+    .unlock-package.best { border:2px solid var(--accent); }
+    .unlock-info { display:flex; flex-direction:column; }
+    .unlock-title { font-weight:600; }
+    .unlock-price { color:var(--accent); font-weight:bold; }
+    .unlock-save { font-size:11px; color:var(--success); }
+    
+    #toast { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,230,118,0.95); color:#000; padding:14px 28px; border-radius:20px; font-weight:600; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; text-align:center; }
+    
+    .timer { font-weight:600; }
+    .timer.warning { color:var(--exclusive); animation:pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity:0.6; } }
+    
+    .referral-box { background:rgba(255,255,255,0.08); border-radius:12px; padding:15px; width:100%; max-width:400px; margin:10px 0; text-align:center; }
+    .referral-link { background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:8px; font-size:12px; word-break:break-all; margin:8px 0; }
+    .bonus-btn { width:100%; max-width:400px; margin:8px 0; padding:12px; background:linear-gradient(90deg, #ff9a9e, #fad0c4); color:#000; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
+    .bonus-btn:disabled { opacity:0.6; cursor:not-allowed; background:#555; color:#aaa; }
+    
+    .vip-banner { background:linear-gradient(135deg, gold, #ffa000); color:#000; border-radius:12px; padding:12px 15px; margin:10px 0; width:100%; max-width:400px; font-weight:600; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+    .topup-btn { background:#0088cc; color:#fff; width:100%; max-width:400px; margin:8px 0; padding:12px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div id="stats">
+    <div class="stat-item">⭐️ <span id="stars">0</span></div>
+    <div class="stat-item timer" id="timer">00:00</div>
+    <div class="stat-item">🧩 <span id="difficulty">3×3</span></div>
+  </div>
+  
+  <div id="board-container">
+    <div id="board"></div>
+  </div>
+  
+  <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+    <button class="btn btn-outline" id="btn-menu">📋 Меню</button>
+    <button class="btn btn-accent" id="btn-hint">💡 Подсказка</button>
+    <button class="btn" id="btn-restart">🔄 Сброс</button>
+  </div>
+</div>
+
+<div id="toast">✓ Собрано!</div>
+
+<!-- MAIN MENU -->
+<div id="menu-overlay" class="overlay">
+  <h2>🧩 Галерея пазлов</h2>
+  
+  <div class="vip-banner" id="vip-banner">
+    <span>👑 VIP: все пазлы + бонусы</span>
+    <span>25⭐️/мес</span>
+  </div>
+  
+  <button class="topup-btn" id="btn-topup">💳 Пополнить звёзды (Telegram Stars)</button>
+  <button class="bonus-btn" id="btn-bonus">🎁 Забрать бонус (+1⭐️)</button>
+  
+  <div class="pack-grid" id="pack-list"></div>
+  
+  <div class="difficulty-row" id="difficulty-selector">
+    <button class="diff-btn active" data-size="3" data-time="90">3×3<br><small>1:30</small></button>
+    <button class="diff-btn" data-size="4" data-time="120">4×4<br><small>2:00</small></button>
+    <button class="diff-btn" data-size="5" data-time="150">5×5<br><small>2:30</small></button>
+    <button class="diff-btn" data-size="6" data-time="180">6×6<br><small>3:00</small></button>
+  </div>
+  
+  <button class="btn btn-accent" id="btn-start" style="font-size:16px; padding:14px 40px; margin:10px 0;">▶ Играть</button>
+  
+  <div class="referral-box">
+    <div style="font-weight:600; margin-bottom:8px;">🎁 Пригласи друга = +1 пазл бесплатно</div>
+    <button class="btn btn-success" id="btn-share">📤 Поделиться</button>
+    <div class="referral-link" id="ref-link" style="display:none;">https://t.me/your_bot?start=ref_12345</div>
+  </div>
+  
+  <button class="btn btn-exclusive" id="btn-unlock-pack">🔓 Открыть пазлы за ⭐️</button>
+</div>
+
+<!-- UNLOCK PACKAGES MODAL -->
+<div id="unlock-overlay" class="overlay hidden">
+  <h2>🔓 Открыть пазлы</h2>
+  <div style="color:var(--tg-hint); font-size:14px; margin-bottom:15px; text-align:center;">
+    Первые 5 пазлов — бесплатно.<br>Открывайте пакеты со скидкой!
+  </div>
+  
+  <div class="unlock-package best" data-count="7" data-price="7">
+    <div class="unlock-info"><div class="unlock-title">🔓 7 пазлов</div><div class="unlock-save">💰 Выгода 4⭐️</div></div>
+    <div class="unlock-price">7 ⭐️</div>
+  </div>
+  <div class="unlock-package" data-count="5" data-price="6">
+    <div class="unlock-info"><div class="unlock-title">🔓 5 пазлов</div><div class="unlock-save">💰 Выгода 2.5⭐️</div></div>
+    <div class="unlock-price">6 ⭐️</div>
+  </div>
+  <div class="unlock-package" data-count="3" data-price="5">
+    <div class="unlock-info"><div class="unlock-title">🔓 3 пазла</div><div class="unlock-save">💰 Выгода 1.5⭐️</div></div>
+    <div class="unlock-price">5 ⭐️</div>
+  </div>
+  <div class="unlock-package" data-count="1" data-price="3">
+    <div class="unlock-info"><div class="unlock-title">🔓 1 пазл</div></div>
+    <div class="unlock-price">3 ⭐️</div>
+  </div>
+  
+  <button class="btn btn-outline" id="btn-back-unlock" style="margin-top:15px;">← Назад</button>
+</div>
+
+<!-- TIME UP -->
+<div id="timeup-overlay" class="overlay hidden">
+  <h2>⏰ Время вышло!</h2>
+  <p style="color:var(--tg-hint); margin-bottom:20px;">Попробуйте ещё раз</p>
+  <button class="btn" id="btn-retry">🔄 Заново</button>
+  <button class="btn btn-outline" id="btn-to-menu">📋 В меню</button>
+</div>
+
+<!-- VIP MODAL -->
+<div id="vip-overlay" class="overlay hidden">
+  <h2>👑 VIP Подписка</h2>
+  <div style="text-align:left; max-width:400px; margin:0 auto 20px;">
+    <div style="margin:8px 0;">✅ Все пазлы открыты</div>
+    <div style="margin:8px 0;">✅ +2⭐️ ежедневно</div>
+    <div style="margin:8px 0;">✅ x2 реферальные бонусы</div>
+  </div>
+  <button class="btn btn-accent" id="btn-buy-vip">🛒 25 ⭐️ / месяц</button>
+  <button class="btn btn-outline" id="btn-close-vip" style="margin-top:10px;">Отмена</button>
+</div>
+
+<script>
+// ================= CONFIG =================
+const CONFIG = {
+  FREE_PACKS_COUNT: 5,
+  BASE_IMAGE_PATH: 'images/',
+  IMAGE_EXTENSION: '.jpg',
+  MAX_AUTO_PACKS: 100,
+  STORAGE_KEY: 'tg_puzzle_v3',
+  REWARD_PER_WIN: (size) => size * 5,
+  WEEKLY_BONUS_AMOUNT: 1,
+  WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000 // 7 дней в мс
+};
+
+// ================= STATE =================
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.enableClosingConfirmation();
+
+let state = {
+  stars: 0,
+  unlocked: [],
+  completed: {}, // { packId: { size: true } }
+  difficulty: 3,
+  timeLimit: 90,
+  currentPack: 0,
+  isPlaying: false,
+  timer: null,
+  timeLeft: 0,
+  vip: { active: false, until: 0 },
+  referrals: 0,
+  freeUnlocks: 0,
+  lastBonusClaim: 0
+};
+
+let tiles = [], selected = null, solved = false, timeUp = false;
+let allPacks = [];
+
+// ================= INIT =================
+function init() {
+  document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#121212');
+  document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#ffffff');
+  document.documentElement.style.setProperty('--tg-btn', tg.themeParams.button_color || '#6a1b9a');
+  document.documentElement.style.setProperty('--tg-btn-text', tg.themeParams.button_text_color || '#ffffff');
+  
+  loadProgress();
+  generatePackList();
+  updateBonusUI();
+  updateUI();
+  showMenu();
+  tg.ready();
+  
+  tg.BackButton.onClick(() => {
+    if (state.isPlaying) showMenu();
+    else tg.close();
+  });
+}
+
+// ================= DYNAMIC PACKS =================
+function generatePackList() {
+  allPacks = [];
+  for (let i = 1; i <= CONFIG.MAX_AUTO_PACKS; i++) {
+    const isFree = i <= CONFIG.FREE_PACKS_COUNT;
+    const isUnlocked = isFree || state.unlocked.includes(i) || (state.vip.active && Date.now() < state.vip.until);
+    allPacks.push({
+      id: i,
+      name: `Ур. ${i}`,
+      url: `${CONFIG.BASE_IMAGE_PATH}${i}${CONFIG.IMAGE_EXTENSION}`,
+      isFree,
+      isUnlocked,
+      isCompleted: state.completed[i]?.[state.difficulty] || false
+    });
+  }
+}
+
+// ================= PROGRESS =================
+function loadProgress() {
+  try {
+    const saved = tg.CloudStorage?.getItem(CONFIG.STORAGE_KEY) || localStorage.getItem(CONFIG.STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+  } catch(e) { console.warn('Load error:', e); }
+}
+
+function saveProgress() {
+  try {
+    const data = JSON.stringify(state);
+    if (tg.CloudStorage?.setItem) tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data);
+    localStorage.setItem(CONFIG.STORAGE_KEY, data);
+  } catch(e) { console.warn('Save error:', e); }
+}
+
+// ================= UI =================
+function updateUI() {
+  document.getElementById('stars').textContent = state.stars;
+  document.getElementById('difficulty').textContent = `${state.difficulty}×${state.difficulty}`;
+  tg.BackButton[state.isPlaying ? 'show' : 'hide']();
+}
+
+function updateBonusUI() {
+  const btn = document.getElementById('btn-bonus');
+  const now = Date.now();
+  const canClaim = !state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN);
+  
+  if (canClaim) {
+    btn.disabled = false;
+    btn.textContent = `🎁 Забрать бонус (+${CONFIG.WEEKLY_BONUS_AMOUNT}⭐️)`;
+  } else {
+    btn.disabled = true;
+    const daysLeft = Math.ceil((state.lastBonusClaim + CONFIG.WEEK_COOLDOWN - now) / 86400000);
+    btn.textContent = `🎁 Бонус через ${daysLeft} дн.`;
+  }
+}
+
+function renderPacks() {
+  const list = document.getElementById('pack-list');
+  list.innerHTML = '';
+  
+  allPacks.forEach(pack => {
+    const card = document.createElement('div');
+    card.className = `pack-card ${!pack.isUnlocked ? 'locked' : ''} ${pack.isCompleted ? 'completed' : ''}`;
+    
+    card.innerHTML = `
+      <div class="pack-thumb" style="${pack.isUnlocked ? `background-image:url('${pack.url}')` : ''}">
+        ${!pack.isUnlocked ? '🔒' : (pack.isCompleted ? '✅' : '')}
+      </div>
+      <div class="pack-title">${pack.name}</div>
+      ${pack.isFree ? '<span class="pack-badge free">FREE</span>' : ''}
+      ${state.vip.active ? '<span class="pack-badge">VIP</span>' : ''}
+    `;
+    
+    card.onclick = () => {
+      if (!pack.isUnlocked) {
+        document.getElementById('menu-overlay').classList.add('hidden');
+        document.getElementById('unlock-overlay').classList.remove('hidden');
+        return;
+      }
+      state.currentPack = pack.id - 1;
+      startGame();
+    };
+    list.appendChild(card);
+  });
+}
+
+// ================= GAMEPLAY =================
+function startGame() {
+  document.getElementById('menu-overlay').classList.add('hidden');
+  document.getElementById('unlock-overlay').classList.add('hidden');
+  document.getElementById('vip-overlay').classList.add('hidden');
+  
+  state.isPlaying = true;
+  state.timeLeft = state.timeLimit;
+  solved = false;
+  timeUp = false;
+  selected = null;
+  
+  generateBoard();
+  startTimer();
+  updateUI();
+}
+
+function generateBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  board.style.gridTemplateColumns = `repeat(${state.difficulty}, 1fr)`;
+  
+  const container = document.getElementById('board-container');
+  const maxSize = Math.min(container.clientWidth, container.clientHeight, 500);
+  const tileSize = Math.floor((maxSize - (state.difficulty + 1) * 2) / state.difficulty);
+  
+  board.style.width = (tileSize * state.difficulty + (state.difficulty - 1) * 2) + 'px';
+  board.style.height = board.style.width;
+  
+  const pack = allPacks[state.currentPack];
+  const url = pack?.url || `${CONFIG.BASE_IMAGE_PATH}1${CONFIG.IMAGE_EXTENSION}`;
+  
+  tiles = [];
+  const indices = Array.from({length: state.difficulty ** 2}, (_, i) => i);
+  shuffle(indices);
+  
+  indices.forEach((originalIdx, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.style.width = tileSize + 'px';
+    tile.style.height = tileSize + 'px';
+    tile.style.backgroundImage = `url(${url})`;
+    tile.style.backgroundSize = `${tileSize * state.difficulty}px`;
+    tile.style.backgroundPosition = `-${(originalIdx % state.difficulty) * tileSize}px -${Math.floor(originalIdx / state.difficulty) * tileSize}px`;
+    tile.dataset.correct = originalIdx;
+    tile.onclick = () => handleTileClick(tile);
+    board.appendChild(tile);
+    tiles.push(tile);
+  });
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// ================= ЛОГИКА СМЕЖНЫХ СВАПОВ =================
+function isAdjacent(tile1, tile2) {
+  const board = document.getElementById('board');
+  const tilesArr = Array.from(board.children);
+  const idx1 = tilesArr.indexOf(tile1);
+  const idx2 = tilesArr.indexOf(tile2);
+  if (idx1 === -1 || idx2 === -1) return false;
+  
+  const row1 = Math.floor(idx1 / state.difficulty);
+  const col1 = idx1 % state.difficulty;
+  const row2 = Math.floor(idx2 / state.difficulty);
+  const col2 = idx2 % state.difficulty;
+  
+  return (row1 === row2 && Math.abs(col1 - col2) === 1) || (col1 === col2 && Math.abs(row1 - row2) === 1);
+}
+
+function handleTileClick(tile) {
+  if (solved || timeUp) return;
+  if (selected === tile) { tile.classList.remove('selected'); selected = null; return; }
+  if (!selected) { selected = tile; tile.classList.add('selected'); return; }
+  
+  if (isAdjacent(selected, tile)) {
+    swapTiles(selected, tile);
+    selected.classList.remove('selected'); selected = null;
+    checkWin();
+  } else {
+    selected.classList.remove('selected');
+    selected = tile; tile.classList.add('selected');
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+  }
+}
+
+function swapTiles(a, b) {
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  const temp = a.dataset.correct;
+  a.dataset.correct = b.dataset.correct;
+  b.dataset.correct = temp;
+  const aPos = a.style.backgroundPosition;
+  a.style.backgroundPosition = b.style.backgroundPosition;
+  b.style.backgroundPosition = aPos;
+  a.classList.add('swapping'); b.classList.add('swapping');
+  setTimeout(() => { a.classList.remove('swapping'); b.classList.remove('swapping'); }, 150);
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  setTimeout(() => toast.style.opacity = '0', 1500);
+}
+
+// 🛡 ПРОВЕРКА ПОБЕДЫ (только 1 раз за сложность)
+function checkWin() {
+  if (solved || timeUp) return;
+  const isSolved = tiles.every((tile, i) => parseInt(tile.dataset.correct) === i);
+  
+  if (isSolved) {
+    solved = true;
+    clearInterval(state.timer);
+    
+    const packId = allPacks[state.currentPack].id;
+    if (!state.completed[packId]) state.completed[packId] = {};
+    
+    if (!state.completed[packId][state.difficulty]) {
+      state.completed[packId][state.difficulty] = true;
+      const reward = CONFIG.REWARD_PER_WIN(state.difficulty);
+      state.stars += reward;
+      showToast(`🎉 Пройдено впервые! +${reward} ⭐️`);
+    } else {
+      showToast(`✅ Пройдено! (Звёзды уже получены ранее)`);
+    }
+    
+    saveProgress();
+    updateUI();
+    
+    setTimeout(() => {
+      if (state.currentPack < allPacks.length - 1) {
+        state.currentPack++;
+        if (allPacks[state.currentPack].isUnlocked) startGame();
+        else showMenu();
+      } else {
+        showMenu();
+      }
+    }, 1200);
+  }
+}
+
+function startTimer() {
+  clearInterval(state.timer);
+  updateTimerDisplay();
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      timeUp = true;
+      document.getElementById('timeup-overlay').classList.remove('hidden');
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(state.timeLeft / 60)).padStart(2, '0');
+  const s = String(state.timeLeft % 60).padStart(2, '0');
+  const el = document.getElementById('timer');
+  el.textContent = `${m}:${s}`;
+  el.classList.toggle('warning', state.timeLeft <= 10);
+}
+
+// ================= МОНЕТИЗАЦИЯ & БОНУСЫ =================
+function claimBonus() {
+  const now = Date.now();
+  if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
+    state.stars += CONFIG.WEEKLY_BONUS_AMOUNT;
+    state.lastBonusClaim = now;
+    saveProgress();
+    updateBonusUI();
+    updateUI();
+    tg.showAlert(`🎁 Бонус получен! +${CONFIG.WEEKLY_BONUS_AMOUNT} ⭐️`);
+  }
+}
+
+function topUpStars() {
+  // 🟡 ЗДЕСЬ ПОДКЛЮЧАЕТСЯ РЕАЛЬНАЯ ОПЛАТА TELEGRAM STARS
+  // Для работы нужен бэкенд, который создаёт инвойс через Bot API (createInvoiceLink с валютой XTR)
+  // Ниже пример вызова, который откроет окно оплаты:
+  /*
+  tg.openInvoice('https://t.me/your_bot?start=pay_10stars', (status) => {
+    if (status === 'paid') {
+      state.stars += 10; // или больше, зависит от пакета
+      saveProgress(); updateUI();
+      tg.showAlert('✅ Звёзды зачислены!');
+    }
+  });
+  */
+  tg.showAlert('💳 Для подключения реальной оплаты звёзд нужно настроить @BotFather и вебхук на вашем сервере. Пока звёзды начисляются только за прохождение пазлов и еженедельный бонус.');
+}
+
+function unlockPacks(count, price) {
+  if (state.stars < price) {
+    tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - state.stars}`);
+    return;
+  }
+  let toUnlock = count;
+  if (state.freeUnlocks > 0) {
+    const used = Math.min(state.freeUnlocks, toUnlock);
+    toUnlock -= used;
+    state.freeUnlocks -= used;
+  }
+  const locked = allPacks.filter(p => !p.isUnlocked).slice(0, toUnlock);
+  locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
+  
+  state.stars -= price;
+  saveProgress();
+  generatePackList();
+  renderPacks();
+  updateUI();
+  
+  tg.showAlert(`✅ Открыто ${locked.length} пазлов!`);
+  document.getElementById('unlock-overlay').classList.add('hidden');
+  document.getElementById('menu-overlay').classList.remove('hidden');
+}
+
+function buyVIP() {
+  if (state.stars < 25) {
+    tg.showAlert(`Недостаточно ⭐️ для VIP!`);
+    return;
+  }
+  state.stars -= 25;
+  state.vip = { active: true, until: Date.now() + 30 * 24 * 60 * 60 * 1000 };
+  allPacks.forEach(p => { if (!p.isFree && !state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
+  saveProgress(); generatePackList(); renderPacks(); updateUI();
+  tg.showAlert('👑 VIP активирован!');
+  document.getElementById('vip-overlay').classList.add('hidden');
+  document.getElementById('menu-overlay').classList.remove('hidden');
+}
+
+function shareReferral() {
+  const botUsername = 'your_puzzle_bot'; // ← ЗАМЕНИТЕ
+  const link = `https://t.me/${botUsername}?start=ref_${Date.now()}`;
+  document.getElementById('ref-link').textContent = link;
+  document.getElementById('ref-link').style.display = 'block';
+  tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🧩 Сыграй в пазлы со мной!`);
+}
+
+// ================= EVENT LISTENERS =================
+document.addEventListener('DOMContentLoaded', init);
+
+document.getElementById('btn-menu').onclick = showMenu;
+document.getElementById('btn-start').onclick = () => startGame();
+document.getElementById('btn-restart').onclick = () => {
+  clearInterval(state.timer);
+  state.timeLeft = state.timeLimit;
+  generateBoard(); startTimer();
+};
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.onclick = function() {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    state.difficulty = parseInt(this.dataset.size);
+    state.timeLimit = parseInt(this.dataset.time);
+    generatePackList(); renderPacks(); updateUI();
+  };
+});
+
+document.querySelectorAll('.unlock-package').forEach(pkg => {
+  pkg.onclick = function() { unlockPacks(parseInt(this.dataset.count), parseInt(this.dataset.price)); };
+});
+
+document.getElementById('btn-bonus').onclick = claimBonus;
+document.getElementById('btn-topup').onclick = topUpStars;
+document.getElementById('btn-unlock-pack').onclick = () => { document.getElementById('menu-overlay').classList.add('hidden'); document.getElementById('unlock-overlay').classList.remove('hidden'); };
+document.getElementById('btn-back-unlock').onclick = () => { document.getElementById('unlock-overlay').classList.add('hidden'); document.getElementById('menu-overlay').classList.remove('hidden'); };
+document.getElementById('vip-banner').onclick = () => { document.getElementById('menu-overlay').classList.add('hidden'); document.getElementById('vip-overlay').classList.remove('hidden'); };
+document.getElementById('btn-buy-vip').onclick = buyVIP;
+document.getElementById('btn-close-vip').onclick = () => { document.getElementById('vip-overlay').classList.add('hidden'); document.getElementById('menu-overlay').classList.remove('hidden'); };
+document.getElementById('btn-share').onclick = shareReferral;
+document.getElementById('btn-retry').onclick = () => { document.getElementById('timeup-overlay').classList.add('hidden'); state.timeLeft = state.timeLimit; generateBoard(); startTimer(); };
+document.getElementById('btn-to-menu').onclick = showMenu;
+document.getElementById('btn-hint').onclick = () => {
+  if (solved || timeUp) return;
+  for (let i = 0; i < tiles.length; i++) {
+    if (parseInt(tiles[i].dataset.correct) !== i) {
+      const target = tiles[parseInt(tiles[i].dataset.correct)];
+      if (isAdjacent(tiles[i], target)) { swapTiles(tiles[i], target); checkWin(); break; }
+    }
+  }
+};
+
+function showMenu() {
+  clearInterval(state.timer);
+  state.isPlaying = false;
+  document.getElementById('menu-overlay').classList.remove('hidden');
+  document.getElementById('unlock-overlay').classList.add('hidden');
+  document.getElementById('vip-overlay').classList.add('hidden');
+  document.getElementById('timeup-overlay').classList.add('hidden');
+  generatePackList(); renderPacks(); updateBonusUI(); updateUI();
+}
+</script>
+</body>
+</html>
