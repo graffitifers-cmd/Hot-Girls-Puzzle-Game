@@ -613,37 +613,35 @@ function shareReferral() {
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
   
-  // Показываем ссылку
+  // Показываем ссылку на экране
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
+  refLinkEl.style.userSelect = 'text';
+  refLinkEl.style.webkitUserSelect = 'text';
   
-  // Создаём временное поле для копирования
+  // Создаём скрытое поле для копирования
   const tempInput = document.createElement('textarea');
   tempInput.value = link;
   tempInput.style.position = 'fixed';
   tempInput.style.top = '-1000px';
   document.body.appendChild(tempInput);
-  tempInput.select();
   
-  // Показываем попап с упрощёнными кнопками
-  tg.showPopup({
-    title: '🎁 Реферальная ссылка',
-    message: 'Ссылка скопирована в буфер обмена!\n\nОтправь её другу:',
-    buttons: [
-      { id: 'ok', type: 'default', text: '✅ OK' }
-    ]
-  }, () => {
-    // Пробуем скопировать
-    try {
-      document.execCommand('copy');
-      tg.showAlert('✅ Ссылка скопирована!\n\nТеперь вставь её другу (Ctrl+V или долгое нажатие)');
-    } catch (err) {
-      tg.showAlert('Скопируй ссылку вручную:\n\n' + link);
-    }
-    document.body.removeChild(tempInput);
-  });
-}
+  // Показываем простую кнопку
+  tg.showAlert('🎁 Твоя реферальная ссылка:\n\n' + link + '\n\n' +
+               '📋 Нажми "Копировать" ниже, затем вставь другу!', 
+               () => {
+                 // Копируем при закрытии окна
+                 tempInput.select();
+                 try {
+                   document.execCommand('copy');
+                   tg.showAlert('✅ Скопировано!\n\nТеперь вставь ссылку другу (Ctrl+V или долгое нажатие)');
+                 } catch (err) {
+                   tg.showAlert('Скопируй ссылку вручную:\nВыдели текст выше и нажми "Копировать"');
+                 }
+                 document.body.removeChild(tempInput);
+               });
+}  
   
 // ================= EVENT LISTENERS =================
 document.addEventListener('DOMContentLoaded', init);
