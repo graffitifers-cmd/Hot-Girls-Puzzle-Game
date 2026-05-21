@@ -20,8 +20,10 @@
     body { margin:0; padding:0; background: var(--tg-bg); color: var(--tg-text); font-family: system-ui, -apple-system, sans-serif; display:flex; flex-direction:column; align-items:center; min-height:100vh; overflow-x:hidden; }
     
     #ui { width:100%; max-width:600px; padding:8px; display:flex; flex-direction:column; flex:1; }
-    #stats { display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.08); padding:10px 15px; border-radius:12px; margin-bottom:10px; font-size:14px; flex-wrap:wrap; gap:8px; }
-    .stat-item { display:flex; align-items:center; gap:5px; }
+    #stats { display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.08); padding:12px 15px; border-radius:12px; margin-bottom:10px; gap:4px; }
+    .stars-main { font-size:20px; font-weight:700; display:flex; align-items:center; gap:6px; }
+    .stars-breakdown { font-size:11px; color:var(--tg-hint); display:flex; gap:12px; }
+    .stars-breakdown span { display:flex; align-items:center; gap:3px; }
     
     #board-container { flex:1; display:flex; align-items:center; justify-content:center; min-height:200px; padding:5px; }
     #board { display:grid; gap:2px; background:rgba(0,0,0,0.3); padding:4px; border-radius:12px; position:relative; }
@@ -78,13 +80,21 @@
     
     .vip-banner { background:linear-gradient(135deg, gold, #ffa000); color:#000; border-radius:12px; padding:12px 15px; margin:10px 0; width:100%; max-width:400px; font-weight:600; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
     .topup-btn { background:#0088cc; color:#fff; width:100%; max-width:400px; margin:8px 0; padding:12px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
+    
+    .stars-details { background:rgba(255,255,255,0.06); border-radius:10px; padding:10px; margin:10px 0; width:100%; max-width:400px; font-size:12px; }
+    .stars-details div { display:flex; justify-content:space-between; margin:4px 0; }
+    .stars-details .total { font-weight:700; color:var(--accent); border-top:1px solid rgba(255,255,255,0.2); padding-top:8px; margin-top:8px; }
   </style>
 </head>
 <body>
 
 <div id="ui">
   <div id="stats">
-    <div class="stat-item">⭐️ <span id="stars">0</span></div>
+    <div class="stars-main">⭐️ <span id="stars-total">0</span></div>
+    <div class="stars-breakdown">
+      <span>🎮 <span id="stars-earned">0</span></span>
+      <span>💳 <span id="stars-bought">0</span></span>
+    </div>
     <div class="stat-item timer" id="timer">00:00</div>
     <div class="stat-item">🧩 <span id="difficulty">3×3</span></div>
   </div>
@@ -111,7 +121,14 @@
     <span>60⭐️/мес</span>
   </div>
   
-  <button class="topup-btn" id="btn-topup">💳 Пополнить звёзды (Telegram Stars)</button>
+  <button class="topup-btn" id="btn-topup">💳 Пополнить звёзды</button>
+  
+  <div class="stars-details">
+    <div>🎮 Заработано в игре: <strong id="detail-earned">0</strong> ⭐️</div>
+    <div>💳 Куплено: <strong id="detail-bought">0</strong> ⭐️</div>
+    <div class="total">💫 Всего доступно: <strong id="detail-total">0</strong> ⭐️</div>
+  </div>
+  
   <button class="bonus-btn" id="btn-bonus">🎁 Забрать бонус (+1⭐️)</button>
   
   <div class="pack-grid" id="pack-list"></div>
@@ -128,7 +145,7 @@
   <div class="referral-box">
     <div style="font-weight:600; margin-bottom:8px;">🎁 Пригласи друга = +1 пазл бесплатно</div>
     <button class="btn btn-success" id="btn-share">📤 Поделиться</button>
-    <div class="referral-link" id="ref-link" style="display:none;">https://t.me/your_bot?start=ref_12345</div>
+    <div class="referral-link" id="ref-link" style="display:none;">https://t.me/girls_puzzle_bot?start=ref_12345</div>
   </div>
   
   <button class="btn btn-exclusive" id="btn-unlock-pack">🔓 Открыть пазлы за ⭐️</button>
@@ -188,21 +205,21 @@ const CONFIG = {
   BASE_IMAGE_PATH: '',
   IMAGE_EXTENSION: '.jpg',
   MAX_AUTO_PACKS: 15,
-  STORAGE_KEY: 'tg_puzzle_v3',
+  STORAGE_KEY: 'tg_puzzle_v4',
   REWARD_PER_WIN: (size) => size * 5,
   WEEKLY_BONUS_AMOUNT: 1,
-  WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000 // 7 дней в мс
+  WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000
 };
 
 // ================= STATE =================
 const tg = window.Telegram.WebApp;
 tg.expand();
-// tg.enableClosingConfirmation();
 
 let state = {
-  stars: 0,
+  starsEarned: 0,    // заработано в игре
+  starsBought: 0,    // куплено за деньги
   unlocked: [],
-  completed: {}, // { packId: { size: true } }
+  completed: {},
   difficulty: 3,
   timeLimit: 90,
   currentPack: 0,
@@ -212,8 +229,14 @@ let state = {
   vip: { active: false, until: 0 },
   referrals: 0,
   freeUnlocks: 0,
-  lastBonusClaim: 0
+  lastBonusClaim: 0,
+  isReferred: false
 };
+
+// Вычисляемый общий баланс
+function getTotalStars() {
+  return state.starsEarned + state.starsBought;
+}
 
 let tiles = [], selected = null, solved = false, timeUp = false;
 let allPacks = [];
@@ -226,6 +249,7 @@ function init() {
   document.documentElement.style.setProperty('--tg-btn-text', tg.themeParams.button_text_color || '#ffffff');
   
   loadProgress();
+  checkReferral();
   generatePackList();
   updateBonusUI();
   updateUI();
@@ -236,6 +260,18 @@ function init() {
     if (state.isPlaying) showMenu();
     else tg.close();
   });
+}
+
+// ================= REFERRAL CHECK =================
+function checkReferral() {
+  const startParam = tg.initDataUnsafe?.start_param;
+  if (startParam && startParam.startsWith('ref_') && !state.isReferred) {
+    state.isReferred = true;
+    state.starsEarned += 1;
+    showToast('🎁 Тебя пригласил друг! +1⭐️');
+    saveProgress();
+    updateUI();
+  }
 }
 
 // ================= DYNAMIC PACKS =================
@@ -276,7 +312,15 @@ function saveProgress() {
 
 // ================= UI =================
 function updateUI() {
-  document.getElementById('stars').textContent = state.stars;
+  const total = getTotalStars();
+  document.getElementById('stars-total').textContent = total;
+  document.getElementById('stars-earned').textContent = state.starsEarned;
+  document.getElementById('stars-bought').textContent = state.starsBought;
+  
+  document.getElementById('detail-earned').textContent = state.starsEarned;
+  document.getElementById('detail-bought').textContent = state.starsBought;
+  document.getElementById('detail-total').textContent = total;
+  
   document.getElementById('difficulty').textContent = `${state.difficulty}×${state.difficulty}`;
   tg.BackButton[state.isPlaying ? 'show' : 'hide']();
 }
@@ -384,7 +428,6 @@ function shuffle(arr) {
   }
 }
 
-// ================= ЛОГИКА СМЕЖНЫХ СВАПОВ =================
 function isAdjacent(tile1, tile2) {
   const board = document.getElementById('board');
   const tilesArr = Array.from(board.children);
@@ -435,7 +478,6 @@ function showToast(msg) {
   setTimeout(() => toast.style.opacity = '0', 1500);
 }
 
-// 🛡 ПРОВЕРКА ПОБЕДЫ (только 1 раз за сложность)
 function checkWin() {
   if (solved || timeUp) return;
   const isSolved = tiles.every((tile, i) => parseInt(tile.dataset.correct) === i);
@@ -450,7 +492,7 @@ function checkWin() {
     if (!state.completed[packId][state.difficulty]) {
       state.completed[packId][state.difficulty] = true;
       const reward = CONFIG.REWARD_PER_WIN(state.difficulty);
-      state.stars += reward;
+      state.starsEarned += reward; // 🎮 начисляем в "заработано"
       showToast(`🎉 Пройдено впервые! +${reward} ⭐️`);
     } else {
       showToast(`✅ Пройдено! (Звёзды уже получены ранее)`);
@@ -497,7 +539,7 @@ function updateTimerDisplay() {
 function claimBonus() {
   const now = Date.now();
   if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
-    state.stars += CONFIG.WEEKLY_BONUS_AMOUNT;
+    state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT; // 🎁 бонус = заработано
     state.lastBonusClaim = now;
     saveProgress();
     updateBonusUI();
@@ -506,25 +548,44 @@ function claimBonus() {
   }
 }
 
+function addPurchasedStars(amount) {
+  // 💳 Эта функция вызывается после успешной оплаты
+  state.starsBought += amount;
+  saveProgress();
+  updateUI();
+}
+
 function topUpStars() {
-  // 🟡 ЗДЕСЬ ПОДКЛЮЧАЕТСЯ РЕАЛЬНАЯ ОПЛАТА TELEGRAM STARS
-  // Для работы нужен бэкенд, который создаёт инвойс через Bot API (createInvoiceLink с валютой XTR)
-  // Ниже пример вызова, который откроет окно оплаты:
-  /*
-  tg.openInvoice('https://t.me/your_bot?start=pay_10stars', (status) => {
-    if (status === 'paid') {
-      state.stars += 10; // или больше, зависит от пакета
-      saveProgress(); updateUI();
-      tg.showAlert('✅ Звёзды зачислены!');
-    }
-  });
-  */
-  tg.showAlert('💳 Для подключения реальной оплаты звёзд нужно настроить @BotFather и вебхук на вашем сервере. Пока звёзды начисляются только за прохождение пазлов и еженедельный бонус.');
+  // 🟡 Здесь будет реальная оплата. Пока — демо.
+  tg.showAlert('💳 Скоро: оплата через Telegram Stars. Звёзды зачислятся в раздел "Куплено".');
+  // Пример после оплаты:
+  // addPurchasedStars(10);
+  // tg.showAlert('✅ +10⭐️ зачислено в "Куплено"!');
+}
+
+function spendStars(amount) {
+  // Тратим звёзды: сначала из "куплено", потом из "заработано"
+  let remaining = amount;
+  
+  if (state.starsBought >= remaining) {
+    state.starsBought -= remaining;
+    remaining = 0;
+  } else {
+    remaining -= state.starsBought;
+    state.starsBought = 0;
+  }
+  
+  if (remaining > 0 && state.starsEarned >= remaining) {
+    state.starsEarned -= remaining;
+  }
+  
+  saveProgress();
+  updateUI();
 }
 
 function unlockPacks(count, price) {
-  if (state.stars < price) {
-    tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - state.stars}`);
+  if (getTotalStars() < price) {
+    tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - getTotalStars()}`);
     return;
   }
   let toUnlock = count;
@@ -536,7 +597,7 @@ function unlockPacks(count, price) {
   const locked = allPacks.filter(p => !p.isUnlocked).slice(0, toUnlock);
   locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   
-  state.stars -= price;
+  spendStars(price); // 💸 тратим звёзды
   saveProgress();
   generatePackList();
   renderPacks();
@@ -548,11 +609,11 @@ function unlockPacks(count, price) {
 }
 
 function buyVIP() {
-  if (state.stars < 60) {
+  if (getTotalStars() < 60) {
     tg.showAlert(`Недостаточно ⭐️ для VIP!`);
     return;
   }
-  state.stars -= 60;
+  spendStars(60);
   state.vip = { active: true, until: Date.now() + 30 * 24 * 60 * 60 * 1000 };
   allPacks.forEach(p => { if (!p.isFree && !state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   saveProgress(); generatePackList(); renderPacks(); updateUI();
@@ -562,11 +623,14 @@ function buyVIP() {
 }
 
 function shareReferral() {
-  const botUsername = 'your_puzzle_bot'; // ← ЗАМЕНИТЕ
-  const link = `https://t.me/${botUsername}?start=ref_${Date.now()}`;
+  const botUsername = 'girls_puzzle_bot';
+  const userId = tg.initDataUnsafe?.user?.id || 'user';
+  const link = `https://t.me/${botUsername}?start=ref_${userId}`;
+  
   document.getElementById('ref-link').textContent = link;
   document.getElementById('ref-link').style.display = 'block';
-  tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🧩 Сыграй в пазлы со мной!`);
+  
+  tg.openTelegramLink(`https://t.me/${botUsername}?start=ref_${userId}`);
 }
 
 // ================= EVENT LISTENERS =================
