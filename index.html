@@ -21,9 +21,9 @@
     
     #ui { width:100%; max-width:600px; padding:8px; display:flex; flex-direction:column; flex:1; }
     #stats { display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.08); padding:12px 15px; border-radius:12px; margin-bottom:10px; gap:4px; }
-    .stars-main { font-size:20px; font-weight:700; display:flex; align-items:center; gap:6px; }
-    .stars-breakdown { font-size:11px; color:var(--tg-hint); display:flex; gap:12px; }
-    .stars-breakdown span { display:flex; align-items:center; gap:3px; }
+    .stars-main { font-size:24px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--accent); }
+    .stars-breakdown { font-size:12px; color:var(--tg-hint); display:flex; gap:15px; margin-top:4px; }
+    .stars-breakdown span { display:flex; align-items:center; gap:4px; }
     
     #board-container { flex:1; display:flex; align-items:center; justify-content:center; min-height:200px; padding:5px; }
     #board { display:grid; gap:2px; background:rgba(0,0,0,0.3); padding:4px; border-radius:12px; position:relative; }
@@ -81,9 +81,9 @@
     .vip-banner { background:linear-gradient(135deg, gold, #ffa000); color:#000; border-radius:12px; padding:12px 15px; margin:10px 0; width:100%; max-width:400px; font-weight:600; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
     .topup-btn { background:#0088cc; color:#fff; width:100%; max-width:400px; margin:8px 0; padding:12px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
     
-    .stars-details { background:rgba(255,255,255,0.06); border-radius:10px; padding:10px; margin:10px 0; width:100%; max-width:400px; font-size:12px; }
-    .stars-details div { display:flex; justify-content:space-between; margin:4px 0; }
-    .stars-details .total { font-weight:700; color:var(--accent); border-top:1px solid rgba(255,255,255,0.2); padding-top:8px; margin-top:8px; }
+    .stars-details { background:rgba(255,255,255,0.06); border-radius:10px; padding:12px; margin:10px 0; width:100%; max-width:400px; font-size:13px; }
+    .stars-details div { display:flex; justify-content:space-between; margin:6px 0; }
+    .stars-details .total { font-weight:700; color:var(--accent); border-top:1px solid rgba(255,255,255,0.2); padding-top:8px; margin-top:8px; font-size:15px; }
   </style>
 </head>
 <body>
@@ -124,9 +124,9 @@
   <button class="topup-btn" id="btn-topup">💳 Пополнить звёзды</button>
   
   <div class="stars-details">
-    <div>🎮 Заработано в игре: <strong id="detail-earned">0</strong> ⭐️</div>
+    <div>🎮 Заработано: <strong id="detail-earned">0</strong> ⭐️</div>
     <div>💳 Куплено: <strong id="detail-bought">0</strong> ⭐️</div>
-    <div class="total">💫 Всего доступно: <strong id="detail-total">0</strong> ⭐️</div>
+    <div class="total">💫 Всего: <strong id="detail-total">0</strong> ⭐️</div>
   </div>
   
   <button class="bonus-btn" id="btn-bonus">🎁 Забрать бонус (+1⭐️)</button>
@@ -205,7 +205,7 @@ const CONFIG = {
   BASE_IMAGE_PATH: '',
   IMAGE_EXTENSION: '.jpg',
   MAX_AUTO_PACKS: 15,
-  STORAGE_KEY: 'tg_puzzle_v4',
+  STORAGE_KEY: 'puzzle_game_v5',
   REWARD_PER_WIN: (size) => size * 5,
   WEEKLY_BONUS_AMOUNT: 1,
   WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000
@@ -216,8 +216,8 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 
 let state = {
-  starsEarned: 0,    // заработано в игре
-  starsBought: 0,    // куплено за деньги
+  starsEarned: 0,
+  starsBought: 0,
   unlocked: [],
   completed: {},
   difficulty: 3,
@@ -233,7 +233,6 @@ let state = {
   isReferred: false
 };
 
-// Вычисляемый общий баланс
 function getTotalStars() {
   return state.starsEarned + state.starsBought;
 }
@@ -268,8 +267,8 @@ function checkReferral() {
   if (startParam && startParam.startsWith('ref_') && !state.isReferred) {
     state.isReferred = true;
     state.starsEarned += 1;
-    showToast('🎁 Тебя пригласил друг! +1⭐️');
     saveProgress();
+    showToast('🎁 Тебя пригласил друг! +1⭐️');
     updateUI();
   }
 }
@@ -291,23 +290,54 @@ function generatePackList() {
   }
 }
 
-// ================= PROGRESS =================
+// ================= PROGRESS - НАДЁЖНОЕ СОХРАНЕНИЕ =================
 function loadProgress() {
   try {
-    const saved = tg.CloudStorage?.getItem(CONFIG.STORAGE_KEY) || localStorage.getItem(CONFIG.STORAGE_KEY);
+    // 1. Пробуем загрузить из localStorage
+    const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       state = { ...state, ...parsed };
+      console.log('✅ Загружено из localStorage:', state);
     }
-  } catch(e) { console.warn('Load error:', e); }
+    
+    // 2. Пробуем CloudStorage (если есть)
+    if (tg.CloudStorage?.getItem) {
+      tg.CloudStorage.getItem(CONFIG.STORAGE_KEY, (err, value) => {
+        if (!err && value) {
+          try {
+            const cloudData = JSON.parse(value);
+            state = { ...state, ...cloudData };
+            console.log('✅ Загружено из CloudStorage:', state);
+            updateUI();
+            updateBonusUI();
+          } catch(e) { console.warn('CloudStorage parse error:', e); }
+        }
+      });
+    }
+  } catch(e) { 
+    console.error('❌ Load error:', e); 
+  }
 }
 
 function saveProgress() {
   try {
     const data = JSON.stringify(state);
-    if (tg.CloudStorage?.setItem) tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data);
+    
+    // 1. Сохраняем в localStorage (главное!)
     localStorage.setItem(CONFIG.STORAGE_KEY, data);
-  } catch(e) { console.warn('Save error:', e); }
+    console.log('💾 Сохранено в localStorage');
+    
+    // 2. Пробуем CloudStorage (если есть)
+    if (tg.CloudStorage?.setItem) {
+      tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data, (err) => {
+        if (err) console.warn('⚠️ CloudStorage error:', err);
+        else console.log('💾 Сохранено в CloudStorage');
+      });
+    }
+  } catch(e) { 
+    console.error('❌ Save error:', e); 
+  }
 }
 
 // ================= UI =================
@@ -492,13 +522,13 @@ function checkWin() {
     if (!state.completed[packId][state.difficulty]) {
       state.completed[packId][state.difficulty] = true;
       const reward = CONFIG.REWARD_PER_WIN(state.difficulty);
-      state.starsEarned += reward; // 🎮 начисляем в "заработано"
+      state.starsEarned += reward;
+      saveProgress(); // 🔥 ВАЖНО: сохраняем сразу!
       showToast(`🎉 Пройдено впервые! +${reward} ⭐️`);
     } else {
-      showToast(`✅ Пройдено! (Звёзды уже получены ранее)`);
+      showToast(`✅ Пройдено! (Уже получено)`);
     }
     
-    saveProgress();
     updateUI();
     
     setTimeout(() => {
@@ -539,32 +569,20 @@ function updateTimerDisplay() {
 function claimBonus() {
   const now = Date.now();
   if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
-    state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT; // 🎁 бонус = заработано
+    state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT;
     state.lastBonusClaim = now;
-    saveProgress();
+    saveProgress(); // 🔥 Сохраняем сразу!
     updateBonusUI();
     updateUI();
     tg.showAlert(`🎁 Бонус получен! +${CONFIG.WEEKLY_BONUS_AMOUNT} ⭐️`);
   }
 }
 
-function addPurchasedStars(amount) {
-  // 💳 Эта функция вызывается после успешной оплаты
-  state.starsBought += amount;
-  saveProgress();
-  updateUI();
-}
-
 function topUpStars() {
-  // 🟡 Здесь будет реальная оплата. Пока — демо.
-  tg.showAlert('💳 Скоро: оплата через Telegram Stars. Звёзды зачислятся в раздел "Куплено".');
-  // Пример после оплаты:
-  // addPurchasedStars(10);
-  // tg.showAlert('✅ +10⭐️ зачислено в "Куплено"!');
+  tg.showAlert('💳 Скоро: оплата через Telegram Stars.');
 }
 
 function spendStars(amount) {
-  // Тратим звёзды: сначала из "куплено", потом из "заработано"
   let remaining = amount;
   
   if (state.starsBought >= remaining) {
@@ -597,7 +615,7 @@ function unlockPacks(count, price) {
   const locked = allPacks.filter(p => !p.isUnlocked).slice(0, toUnlock);
   locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   
-  spendStars(price); // 💸 тратим звёзды
+  spendStars(price);
   saveProgress();
   generatePackList();
   renderPacks();
