@@ -187,7 +187,7 @@ const CONFIG = {
   FREE_PACKS_COUNT: 5,
   BASE_IMAGE_PATH: '',
   IMAGE_EXTENSION: '.jpg',
-  MAX_AUTO_PACKS: 100,
+  MAX_AUTO_PACKS: 15,
   STORAGE_KEY: 'tg_puzzle_v3',
   REWARD_PER_WIN: (size) => size * 5,
   WEEKLY_BONUS_AMOUNT: 1,
@@ -548,11 +548,11 @@ function unlockPacks(count, price) {
 }
 
 function buyVIP() {
-  if (state.stars < 25) {
+  if (state.stars < 60) {
     tg.showAlert(`Недостаточно ⭐️ для VIP!`);
     return;
   }
-  state.stars -= 25;
+  state.stars -= 60;
   state.vip = { active: true, until: Date.now() + 30 * 24 * 60 * 60 * 1000 };
   allPacks.forEach(p => { if (!p.isFree && !state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   saveProgress(); generatePackList(); renderPacks(); updateUI();
