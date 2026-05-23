@@ -641,6 +641,9 @@ function showMenu() {
   document.getElementById('unlock-overlay').classList.add('hidden');
   document.getElementById('vip-overlay').classList.add('hidden');
   document.getElementById('continue-overlay').classList.add('hidden');
+      const refBox = document.querySelector('.referral-box');
+    if (state.isReferred === true) refBox.style.display = 'none';
+    else refBox.style.display = 'block';
   generatePackList(); renderPacks(); updateBonusUI(); updateUI();
 }
 </script>
