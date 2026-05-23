@@ -83,6 +83,7 @@
     <div class="stars-breakdown">
       <span>🎮 <span id="stars-earned">0</span></span>
       <span>💳 <span id="stars-bought">0</span></span>
+      <span>👥 Рефералы: <span id="ref-count">0</span></span>
     </div>
     <div class="stat-item timer" id="timer">00:00</div>
     <div class="stat-item">🧩 <span id="difficulty">3×3</span></div>
@@ -219,7 +220,7 @@ let state = {
   timer: null,
   timeLeft: 0,
   vip: { active: false, until: 0 },
-  referrals: 0,
+  referralCount: 0,
   freeUnlocks: 0,
   lastBonusClaim: 0,
   isReferred: false
@@ -316,6 +317,7 @@ function updateUI() {
   document.getElementById('stars-total').textContent = total;
   document.getElementById('stars-earned').textContent = state.starsEarned;
   document.getElementById('stars-bought').textContent = state.starsBought;
+  document.getElementById('ref-count').textContent = state.referralCount;
   document.getElementById('detail-earned').textContent = state.starsEarned;
   document.getElementById('detail-bought').textContent = state.starsBought;
   document.getElementById('detail-total').textContent = total;
@@ -578,11 +580,20 @@ function buyVIP() {
 }
 function shareReferral() {
   const botUsername = 'girls_puzzle_bot';
-  const userId = tg.initDataUnsafe?.user?.id || 'user';
+  const userId = tg.initDataUnsafe?.user?.id || 'user' + Date.now();
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
-  const el = document.getElementById('ref-link');
-  el.textContent = link; el.style.display = 'block';
-  tg.showAlert('🎁 Твоя ссылка:\n' + link);
+  
+  // Показываем ссылку в поле
+  const refLinkEl = document.getElementById('ref-link');
+  refLinkEl.textContent = link;
+  refLinkEl.style.display = 'block';
+  
+  // Копирование в буфер
+  navigator.clipboard?.writeText(link).then(() => {
+    tg.showAlert('✅ Ссылка скопирована!\n\nОтправь её другу, чтобы получить +1⭐️ когда он зарегистрируется!');
+  }).catch(() => {
+    tg.showAlert('📋 Твоя реферальная ссылка:\n\n' + link + '\n\nСкопируй её вручную и отправь другу!');
+  });
 }
 
 // ================= LISTENERS =================
