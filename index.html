@@ -583,17 +583,29 @@ function shareReferral() {
   const userId = tg.initDataUnsafe?.user?.id || 'user' + Date.now();
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
   
-  // Показываем ссылку в поле
+  // Показываем ссылку на экране
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
   
-  // Копирование в буфер
-  navigator.clipboard?.writeText(link).then(() => {
-    tg.showAlert('✅ Ссылка скопирована!\n\nОтправь её другу, чтобы получить +1⭐️ когда он зарегистрируется!');
-  }).catch(() => {
-    tg.showAlert('📋 Твоя реферальная ссылка:\n\n' + link + '\n\nСкопируй её вручную и отправь другу!');
-  });
+  // Создаём скрытое поле для копирования
+  const tempInput = document.createElement('textarea');
+  tempInput.value = link;
+  tempInput.style.position = 'fixed';
+  tempInput.style.top = '-9999px';
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  
+  // Копируем надёжным способом
+  try {
+    document.execCommand('copy');
+    tg.showAlert('✅ Ссылка скопирована!\n\n' + link + '\n\nОтправь другу — он получит бонус при первом заходе!');
+  } catch (err) {
+    tg.showAlert('📋 Скопируй ссылку вручную:\n\n' + link);
+  }
+  
+  document.body.removeChild(tempInput);
+}
 }
 
 // ================= LISTENERS =================
