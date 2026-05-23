@@ -248,12 +248,13 @@ async function init() {
   tg.BackButton.onClick(() => { if (state.isPlaying) showMenu(); else tg.close(); });
 }
 
-// ================= REFERRAL (РАБОЧАЯ ВЕРСИЯ) =================
+// ================= REFERRAL (ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ) =================
 function checkReferral() {
   const startParam = tg.initDataUnsafe?.start_param;
+  // Если зашли по реферальной ссылке И ещё не получали бонус
   if (startParam && startParam.startsWith('ref_') && !state.isReferred) {
     state.isReferred = true;
-    state.starsEarned += 1;
+    state.starsEarned += 1;  // +1⭐️ тому, кто перешёл по ссылке
     saveProgress();
     showToast('🎁 Тебя пригласил друг! +1⭐️');
     updateUI();
@@ -271,11 +272,12 @@ function shareReferral() {
   
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
   
+  // Показываем ссылку на экране
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
   
-  // Копирование через execCommand (работает везде)
+  // Копирование через execCommand (работает на всех устройствах)
   const tempInput = document.createElement('textarea');
   tempInput.value = link;
   tempInput.style.position = 'fixed';
