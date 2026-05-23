@@ -110,15 +110,16 @@
   <button class="bonus-btn" id="btn-bonus">🎁 Забрать бонус (+1⭐️)</button>
   <div class="pack-grid" id="pack-list"></div>
   <div class="difficulty-row" id="difficulty-selector">
-    <button class="diff-btn active" data-size="3" data-time="90">3×3<br><small>1:30</small></button>
-    <button class="diff-btn" data-size="4" data-time="120">4×4<br><small>2:00</small></button>
-    <button class="diff-btn" data-size="5" data-time="150">5×5<br><small>2:30</small></button>
-    <button class="diff-btn" data-size="6" data-time="180">6×6<br><small>3:00</small></button>
+    <!-- ✅ НОВЫЕ ТАЙМЕРЫ -->
+    <button class="diff-btn active" data-size="3" data-time="60">3×3<br><small>1:00</small></button>
+    <button class="diff-btn" data-size="4" data-time="90">4×4<br><small>1:30</small></button>
+    <button class="diff-btn" data-size="5" data-time="120">5×5<br><small>2:00</small></button>
+    <button class="diff-btn" data-size="6" data-time="150">6×6<br><small>2:30</small></button>
   </div>
   <button class="btn btn-accent" id="btn-start" style="font-size:16px; padding:14px 40px; margin:10px 0;">▶ Играть</button>
   <div class="referral-box">
     <div style="font-weight:600; margin-bottom:8px;">🎁 Пригласи друга = +1 пазл бесплатно</div>
-    <button class="btn btn-success" id="btn-share">📤 Поделиться</button>
+    <button class="btn btn-success" id="btn-share"> Поделиться</button>
     <div class="referral-link" id="ref-link" style="display:none;"></div>
   </div>
   <button class="btn btn-exclusive" id="btn-unlock-pack">🔓 Открыть пазлы за ⭐️</button>
@@ -149,12 +150,25 @@
   <button class="btn btn-outline" id="btn-back-unlock" style="margin-top:15px;">← Назад</button>
 </div>
 
-<!-- TIME UP -->
-<div id="timeup-overlay" class="overlay hidden">
+<!-- ✅ НОВОЕ ОКНО ПРОДОЛЖЕНИЯ ИГРЫ -->
+<div id="continue-overlay" class="overlay hidden">
   <h2>⏰ Время вышло!</h2>
-  <p style="color:var(--tg-hint); margin-bottom:20px;">Попробуйте ещё раз</p>
-  <button class="btn" id="btn-retry">🔄 Заново</button>
-  <button class="btn btn-outline" id="btn-to-menu">📋 В меню</button>
+  <p style="color:var(--tg-hint); margin-bottom:20px; text-align:center;">
+    Хотите продолжить?<br>Купите дополнительное время:
+  </p>
+  <div class="unlock-package best" onclick="buyExtraTime(10, 1)">
+    <div class="unlock-info"><div class="unlock-title">⏱️ +10 секунд</div></div>
+    <div class="unlock-price">1 ⭐️</div>
+  </div>
+  <div class="unlock-package" onclick="buyExtraTime(20, 2)">
+    <div class="unlock-info"><div class="unlock-title">⏱️ +20 секунд</div></div>
+    <div class="unlock-price">2 ⭐️</div>
+  </div>
+  <div class="unlock-package" onclick="buyExtraTime(50, 5)">
+    <div class="unlock-info"><div class="unlock-title">️ +50 секунд</div><div class="unlock-save">💰 Выгодно!</div></div>
+    <div class="unlock-price">5 ️</div>
+  </div>
+  <button class="btn btn-outline" onclick="giveUp()" style="margin-top:15px;">❌ Сдаться</button>
 </div>
 
 <!-- VIP -->
@@ -176,14 +190,13 @@ const CONFIG = {
   BASE_IMAGE_PATH: '',
   IMAGE_EXTENSION: '.jpg',
   MAX_AUTO_PACKS: 15,
-  STORAGE_KEY: 'puzzle_save_v6',
-  // === НОВАЯ СИСТЕМА НАГРАД ===
-  REWARD_PER_WIN: (difficulty) => {
-    if (difficulty === 3) return 2;
-    if (difficulty === 4) return 3;
-    if (difficulty === 5) return 4;
-    if (difficulty === 6) return 5;
-    return 2; // fallback
+  STORAGE_KEY: 'puzzle_save_v6', // Сохраняем тот же ключ, чтобы прогресс не потерялся
+  REWARD_PER_WIN: (diff) => {
+    if(diff===3) return 2;
+    if(diff===4) return 3;
+    if(diff===5) return 4;
+    if(diff===6) return 5;
+    return 2;
   },
   WEEKLY_BONUS_AMOUNT: 1,
   WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000
@@ -200,7 +213,7 @@ let state = {
   unlocked: [],
   completed: {},
   difficulty: 3,
-  timeLimit: 90,
+  timeLimit: 60,
   currentPack: 0,
   isPlaying: false,
   timer: null,
@@ -264,7 +277,7 @@ function generatePackList() {
   }
 }
 
-// ================= PROGRESS (СОХРАНЕНИЕ НЕ МЕНЯЕТСЯ!) =================
+// ================= PROGRESS (БЕЗ ИЗМЕНЕНИЙ В ЛОГИКЕ) =================
 function loadProgress() {
   return new Promise((resolve) => {
     if (!tg.CloudStorage?.getItem) { console.warn('CloudStorage не доступен'); resolve(); return; }
@@ -273,9 +286,8 @@ function loadProgress() {
       if (value) {
         try {
           const saved = JSON.parse(value);
-          // ✅ Загружаем ВСЕ данные как есть - прогресс не сбрасывается!
-          state = { ...state, ...saved };
-          console.log('✅ Загружено:', state);
+          state = { ...state, ...saved }; // ✅ Все старые данные подтягиваются
+          console.log('✅ Прогресс загружен');
         } catch(e) { console.error('❌ Ошибка парсинга:', e); }
       }
       resolve();
@@ -295,7 +307,6 @@ function saveProgressSync() {
   tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data, (err) => {
     isSaving = false;
     if (err) console.error('❌ Ошибка сохранения:', err);
-    else console.log('💾 Сохранено');
   });
 }
 
@@ -360,6 +371,7 @@ function startGame() {
   document.getElementById('menu-overlay').classList.add('hidden');
   document.getElementById('unlock-overlay').classList.add('hidden');
   document.getElementById('vip-overlay').classList.add('hidden');
+  document.getElementById('continue-overlay').classList.add('hidden');
   state.isPlaying = true;
   state.timeLeft = state.timeLimit;
   solved = false; timeUp = false; selected = null;
@@ -449,7 +461,7 @@ function showToast(msg) {
   setTimeout(() => toast.style.opacity = '0', 1500);
 }
 
-// === ПРОВЕРКА ПОБЕДЫ С НОВОЙ СИСТЕМОЙ НАГРАД ===
+// === ПРОВЕРКА ПОБЕДЫ (ЗАЩИТА ОТ ДВОЙНЫХ НАГРАД) ===
 function checkWin() {
   if(solved || timeUp) return;
   const b = document.getElementById('board');
@@ -463,30 +475,24 @@ function checkWin() {
     clearInterval(state.timer);
     
     const packId = allPacks[state.currentPack].id;
-    
-    // === КЛЮЧЕВОЙ МОМЕНТ: Проверяем, был ли уже пройден этот пазл ===
     const alreadyCompleted = state.completed[packId]?.[state.difficulty] === true;
     
     if (!alreadyCompleted) {
-      // ✅ Только если пазл пройден ВПЕРВЫЕ - даём награду
       if(!state.completed[packId]) state.completed[packId] = {};
       state.completed[packId][state.difficulty] = true;
-      
-      // === НОВАЯ СИСТЕМА НАГРАД ===
       const stars = CONFIG.REWARD_PER_WIN(state.difficulty);
       state.starsEarned += stars;
-      
       showToast(`Собрано! +${stars}⭐️`);
+    } else {
+      showToast('Уже пройден!');
     }
     
-    saveProgress(); // ✅ Сохраняем прогресс (звёзды + галочки)
-
-    setTimeout(() => {
-      showMenu(); // Возврат в меню
-    }, 1200);
+    saveProgress();
+    setTimeout(() => showMenu(), 1200);
   }
 }
 
+// === ТАЙМЕР И ПРОДОЛЖЕНИЕ ИГРЫ ===
 function startTimer() {
   clearInterval(state.timer);
   updateTimerDisplay();
@@ -496,7 +502,7 @@ function startTimer() {
     if (state.timeLeft <= 0) {
       clearInterval(state.timer);
       timeUp = true;
-      document.getElementById('timeup-overlay').classList.remove('hidden');
+      document.getElementById('continue-overlay').classList.remove('hidden');
     }
   }, 1000);
 }
@@ -509,34 +515,49 @@ function updateTimerDisplay() {
   el.classList.toggle('warning', state.timeLeft <= 10);
 }
 
+// === ПОКУПКА ВРЕМЕНИ ===
+function buyExtraTime(seconds, cost) {
+  if (getTotalStars() < cost) {
+    tg.showAlert(`❌ Недостаточно звёзд! Нужно ${cost}⭐️, у вас ${getTotalStars()}⭐️`);
+    return;
+  }
+  spendStars(cost);
+  state.timeLeft += seconds;
+  timeUp = false;
+  document.getElementById('continue-overlay').classList.add('hidden');
+  showToast(`⏱️ +${seconds} сек! -${cost}⭐️`);
+  startTimer();
+  if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+
+function giveUp() {
+  document.getElementById('continue-overlay').classList.add('hidden');
+  showMenu();
+}
+
 // ================= МОНЕТИЗАЦИЯ =================
 function claimBonus() {
   const now = Date.now();
   if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
     state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT;
-    state.lastBonusClaim = now; // ✅ Таймер бонуса сохраняется
+    state.lastBonusClaim = now;
     saveProgressSync();
-    updateBonusUI();
-    updateUI();
+    updateBonusUI(); updateUI();
     tg.showAlert(`🎁 Бонус получен! +${CONFIG.WEEKLY_BONUS_AMOUNT} ⭐️`);
   }
 }
-
 function topUpStars() { tg.showAlert('💳 Скоро: оплата через Telegram Stars.'); }
-
 function spendStars(amount) {
-  let remaining = amount;
-  if (state.starsBought >= remaining) { state.starsBought -= remaining; remaining = 0; }
-  else { remaining -= state.starsBought; state.starsBought = 0; }
-  if (remaining > 0 && state.starsEarned >= remaining) { state.starsEarned -= remaining; }
-  saveProgressSync();
-  updateUI();
+  let rem = amount;
+  if (state.starsBought >= rem) { state.starsBought -= rem; rem = 0; }
+  else { rem -= state.starsBought; state.starsBought = 0; }
+  if (rem > 0 && state.starsEarned >= rem) state.starsEarned -= rem;
+  saveProgressSync(); updateUI();
 }
-
 function unlockPacks(count, price) {
-  if (getTotalStars() < price) { tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - getTotalStars()}`); return; }
+  if (getTotalStars() < price) { tg.showAlert(`Недостаточно ⭐️!`); return; }
   let toUnlock = count;
-  if (state.freeUnlocks > 0) { const used = Math.min(state.freeUnlocks, toUnlock); toUnlock -= used; state.freeUnlocks -= used; }
+  if (state.freeUnlocks > 0) { const u = Math.min(state.freeUnlocks, toUnlock); toUnlock -= u; state.freeUnlocks -= u; }
   const locked = allPacks.filter(p => !p.isUnlocked).slice(0, toUnlock);
   locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   spendStars(price);
@@ -545,7 +566,6 @@ function unlockPacks(count, price) {
   document.getElementById('unlock-overlay').classList.add('hidden');
   document.getElementById('menu-overlay').classList.remove('hidden');
 }
-
 function buyVIP() {
   if (getTotalStars() < 60) { tg.showAlert(`Недостаточно ⭐️ для VIP!`); return; }
   spendStars(60);
@@ -556,31 +576,16 @@ function buyVIP() {
   document.getElementById('vip-overlay').classList.add('hidden');
   document.getElementById('menu-overlay').classList.remove('hidden');
 }
-
 function shareReferral() {
   const botUsername = 'girls_puzzle_bot';
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
-  const refLinkEl = document.getElementById('ref-link');
-  refLinkEl.textContent = link;
-  refLinkEl.style.display = 'block';
-  
-  let copyBtn = document.getElementById('ref-copy-btn');
-  if (!copyBtn) {
-    copyBtn = document.createElement('button');
-    copyBtn.id = 'ref-copy-btn';
-    copyBtn.className = 'btn btn-success';
-    copyBtn.style.marginTop = '10px';
-    copyBtn.textContent = '📋 Копировать';
-    refLinkEl.parentNode.insertBefore(copyBtn, refLinkEl.nextSibling);
-    copyBtn.onclick = function() {
-      navigator.clipboard?.writeText(link).then(() => tg.showAlert('✅ Ссылка скопирована!'));
-    };
-  }
+  const el = document.getElementById('ref-link');
+  el.textContent = link; el.style.display = 'block';
   tg.showAlert('🎁 Твоя ссылка:\n' + link);
 }
 
-// ================= EVENT LISTENERS =================
+// ================= LISTENERS =================
 document.addEventListener('DOMContentLoaded', init);
 document.getElementById('btn-menu').onclick = showMenu;
 document.getElementById('btn-start').onclick = () => startGame();
@@ -605,13 +610,11 @@ document.getElementById('vip-banner').onclick = () => { document.getElementById(
 document.getElementById('btn-buy-vip').onclick = buyVIP;
 document.getElementById('btn-close-vip').onclick = () => { document.getElementById('vip-overlay').classList.add('hidden'); document.getElementById('menu-overlay').classList.remove('hidden'); };
 document.getElementById('btn-share').onclick = shareReferral;
-document.getElementById('btn-retry').onclick = () => { document.getElementById('timeup-overlay').classList.add('hidden'); state.timeLeft = state.timeLimit; generateBoard(); startTimer(); };
 document.getElementById('btn-to-menu').onclick = showMenu;
 document.getElementById('btn-hint').onclick = () => {
   if (solved || timeUp) return;
   if (getTotalStars() < 1) { tg.showAlert('💡 Для подсказки нужна 1 звезда!'); return; }
-  spendStars(1);
-  showToast('💡 Подсказка! -1⭐️');
+  spendStars(1); showToast('💡 Подсказка! -1⭐️');
   for (let i = 0; i < tiles.length; i++) {
     if (parseInt(tiles[i].dataset.correct) !== i) {
       const target = tiles[parseInt(tiles[i].dataset.correct)];
@@ -626,7 +629,7 @@ function showMenu() {
   document.getElementById('menu-overlay').classList.remove('hidden');
   document.getElementById('unlock-overlay').classList.add('hidden');
   document.getElementById('vip-overlay').classList.add('hidden');
-  document.getElementById('timeup-overlay').classList.add('hidden');
+  document.getElementById('continue-overlay').classList.add('hidden');
   generatePackList(); renderPacks(); updateBonusUI(); updateUI();
 }
 </script>
