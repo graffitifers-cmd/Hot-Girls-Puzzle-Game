@@ -489,31 +489,63 @@ function showToast(msg) {
   setTimeout(() => toast.style.opacity = '0', 1500);
 }
 
-function checkWin() {
-  if (solved || timeUp) return;
-  const isSolved = tiles.every((tile, i) => parseInt(tile.dataset.correct) === i);
-  if (isSolved) {
-    solved = true;
-    clearInterval(state.timer);
-    const packId = allPacks[state.currentPack].id;
-    if (!state.completed[packId]) state.completed[packId] = {};
-    if (!state.completed[packId][state.difficulty]) {
-      state.completed[packId][state.difficulty] = true;
-      const reward = CONFIG.REWARD_PER_WIN(state.difficulty);
-      state.starsEarned += reward;
-      showToast(`🎉 Пройдено впервые! +${reward} ⭐️`);
-      saveProgressSync();
-    } else {
-      showToast(`✅ Пройдено! (Уже получено)`);
-    }
-    updateUI();
-    setTimeout(() => {
-      if (state.currentPack < allPacks.length - 1) {
-        state.currentPack++;
-        if (allPacks[state.currentPack].isUnlocked) startGame();
-        else showMenu();
-      } else { showMenu(); }
-    }, 1200);
+    function checkWin() {
+      if(solved || timeUp) return;
+      const b = document.getElementById('board');
+      let ok = true;
+      Array.from(b.children).forEach((t, i) => {
+        if(parseInt(t.dataset.correct) !== i) ok = false;
+      });
+
+      if(ok) {
+        solved = true; 
+        clearInterval(state.interval);
+        
+        const pack = PACKS[state.packIdx];
+        if(!state.done[pack.id]) state.done[pack.id] = {};
+        state.done[pack.id][state.size] = true;
+        
+        // === ИЗМЕНЕНИЕ ЗДЕСЬ: НОВАЯ ЛОГИКА ЗВЕЗД ===
+        let stars = 0;
+        if (state.size === 3) stars = 2;
+        else if (state.size === 4) stars = 3;
+        else if (state.size === 5) stars = 4;
+        else if (state.size === 6) stars = 5;
+        
+        state.pts += stars; // Добавляем звезды, а не умножаем на 10
+        // ============================================
+        
+        save();
+
+        const toast = document.getElementById('toast');
+        toast.style.opacity = 1;
+        
+        setTimeout(() => {
+          toast.style.opacity = 0;
+          
+          if (state.size === 6) {
+            showMenu();
+          } else {
+            if (state.packIdx === 9) {
+              const sizeIdx = SIZES.indexOf(state.size);
+              if (sizeIdx < SIZES.length - 1) {
+                state.packIdx = 0; 
+                const nextSize = SIZES[sizeIdx + 1];
+                const btn = document.querySelector(`.difficulty-btn[data-size="${nextSize}"]`);
+                if (btn) btn.click();
+                startGame(false);
+              } else {
+                state.packIdx = 0;
+                const btn = document.querySelector(`.difficulty-btn[data-size="6"]`);
+                if (btn) btn.click();
+                startGame(false);
+              }
+            } else {
+              state.packIdx++;
+              startGame(false);
+            }
+          }
+        }, 1200);
   }
 }
 
