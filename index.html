@@ -17,29 +17,19 @@
       --success: #00e676;
     }
     * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
-    
-    /* ✅ ИСКЛЮЧЕНИЕ: разрешаем выделение текста для реферальной ссылки */
-    .referral-link {
-      user-select: text !important;
-      -webkit-user-select: text !important;
-      cursor: text !important;
-    }
-    
+    .referral-link { user-select: text !important; -webkit-user-select: text !important; cursor: text !important; }
     body { margin:0; padding:0; background: var(--tg-bg); color: var(--tg-text); font-family: system-ui, -apple-system, sans-serif; display:flex; flex-direction:column; align-items:center; min-height:100vh; overflow-x:hidden; }
-    
     #ui { width:100%; max-width:600px; padding:8px; display:flex; flex-direction:column; flex:1; }
     #stats { display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.08); padding:12px 15px; border-radius:12px; margin-bottom:10px; gap:4px; }
     .stars-main { font-size:24px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--accent); }
     .stars-breakdown { font-size:12px; color:var(--tg-hint); display:flex; gap:15px; margin-top:4px; }
     .stars-breakdown span { display:flex; align-items:center; gap:4px; }
-    
     #board-container { flex:1; display:flex; align-items:center; justify-content:center; min-height:200px; padding:5px; }
     #board { display:grid; gap:2px; background:rgba(0,0,0,0.3); padding:4px; border-radius:12px; position:relative; }
     .tile { background-size:cover; background-position:center; border-radius:6px; cursor:pointer; transition:transform 0.1s, box-shadow 0.1s; }
     .tile:active { transform:scale(0.97); }
     .tile.selected { outline:3px solid var(--accent); z-index:10; box-shadow:0 0 15px var(--accent); }
     .tile.swapping { transition: background-position 0.15s ease; }
-    
     .btn { background:var(--tg-btn); color:var(--tg-btn-text); border:none; padding:12px 20px; margin:4px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
     .btn:active { transform:scale(0.98); opacity:0.95; }
     .btn:disabled { opacity:0.5; cursor:not-allowed; }
@@ -47,11 +37,9 @@
     .btn-exclusive { background:var(--exclusive); }
     .btn-success { background:var(--success); color:#000; }
     .btn-outline { background:transparent; border:2px solid var(--tg-btn); color:var(--tg-btn); }
-    
     .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; z-index:100; padding:20px 15px; overflow-y:auto; }
     .overlay.hidden { display:none; }
     .overlay h2 { margin:10px 0 15px; font-size:22px; text-align:center; }
-    
     .pack-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px; width:100%; max-width:500px; margin:0 auto; }
     .pack-card { background:rgba(255,255,255,0.08); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; position:relative; transition:all 0.2s; }
     .pack-card:hover { transform:translateY(-2px); }
@@ -62,11 +50,9 @@
     .pack-title { font-size:13px; font-weight:600; }
     .pack-badge { position:absolute; top:5px; right:5px; background:var(--exclusive); color:#fff; padding:2px 6px; border-radius:8px; font-size:10px; }
     .pack-badge.free { background:var(--success); color:#000; }
-    
     .difficulty-row { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:15px 0; }
     .diff-btn { background:rgba(255,255,255,0.1); color:var(--tg-text); border:none; padding:10px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
     .diff-btn.active { background:var(--accent); font-weight:bold; }
-    
     .unlock-package { background:rgba(255,255,255,0.08); border-radius:12px; padding:12px; margin:8px 0; width:100%; max-width:400px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:all 0.2s; }
     .unlock-package:hover { background:rgba(255,255,255,0.12); }
     .unlock-package.best { border:2px solid var(--accent); }
@@ -74,21 +60,16 @@
     .unlock-title { font-weight:600; }
     .unlock-price { color:var(--accent); font-weight:bold; }
     .unlock-save { font-size:11px; color:var(--success); }
-    
     #toast { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,230,118,0.95); color:#000; padding:14px 28px; border-radius:20px; font-weight:600; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; text-align:center; }
-    
     .timer { font-weight:600; }
     .timer.warning { color:var(--exclusive); animation:pulse 1s infinite; }
     @keyframes pulse { 50% { opacity:0.6; } }
-    
     .referral-box { background:rgba(255,255,255,0.08); border-radius:12px; padding:15px; width:100%; max-width:400px; margin:10px 0; text-align:center; }
     .referral-link { background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:8px; font-size:12px; word-break:break-all; margin:8px 0; }
     .bonus-btn { width:100%; max-width:400px; margin:8px 0; padding:12px; background:linear-gradient(90deg, #ff9a9e, #fad0c4); color:#000; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
     .bonus-btn:disabled { opacity:0.6; cursor:not-allowed; background:#555; color:#aaa; }
-    
     .vip-banner { background:linear-gradient(135deg, gold, #ffa000); color:#000; border-radius:12px; padding:12px 15px; margin:10px 0; width:100%; max-width:400px; font-weight:600; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
     .topup-btn { background:#0088cc; color:#fff; width:100%; max-width:400px; margin:8px 0; padding:12px; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
-    
     .stars-details { background:rgba(255,255,255,0.06); border-radius:10px; padding:12px; margin:10px 0; width:100%; max-width:400px; font-size:13px; }
     .stars-details div { display:flex; justify-content:space-between; margin:6px 0; }
     .stars-details .total { font-weight:700; color:var(--accent); border-top:1px solid rgba(255,255,255,0.2); padding-top:8px; margin-top:8px; font-size:15px; }
@@ -106,11 +87,7 @@
     <div class="stat-item timer" id="timer">00:00</div>
     <div class="stat-item">🧩 <span id="difficulty">3×3</span></div>
   </div>
-  
-  <div id="board-container">
-    <div id="board"></div>
-  </div>
-  
+  <div id="board-container"><div id="board"></div></div>
   <div style="display:flex; justify-content:center; flex-wrap:wrap;">
     <button class="btn btn-outline" id="btn-menu">📋 Меню</button>
     <button class="btn btn-accent" id="btn-hint">💡 Подсказка</button>
@@ -123,49 +100,36 @@
 <!-- MAIN MENU -->
 <div id="menu-overlay" class="overlay">
   <h2>🧩 Галерея пазлов</h2>
-  
-  <div class="vip-banner" id="vip-banner">
-    <span>👑 VIP: все пазлы + бонусы</span>
-    <span>60⭐️/мес</span>
-  </div>
-  
+  <div class="vip-banner" id="vip-banner"><span>👑 VIP: все пазлы + бонусы</span><span>60⭐️/мес</span></div>
   <button class="topup-btn" id="btn-topup">💳 Пополнить звёзды</button>
-  
   <div class="stars-details">
     <div>🎮 Заработано: <strong id="detail-earned">0</strong> ⭐️</div>
     <div>💳 Куплено: <strong id="detail-bought">0</strong> ⭐️</div>
     <div class="total">💫 Всего: <strong id="detail-total">0</strong> ⭐️</div>
   </div>
-  
   <button class="bonus-btn" id="btn-bonus">🎁 Забрать бонус (+1⭐️)</button>
-  
   <div class="pack-grid" id="pack-list"></div>
-  
   <div class="difficulty-row" id="difficulty-selector">
     <button class="diff-btn active" data-size="3" data-time="90">3×3<br><small>1:30</small></button>
     <button class="diff-btn" data-size="4" data-time="120">4×4<br><small>2:00</small></button>
     <button class="diff-btn" data-size="5" data-time="150">5×5<br><small>2:30</small></button>
     <button class="diff-btn" data-size="6" data-time="180">6×6<br><small>3:00</small></button>
   </div>
-  
   <button class="btn btn-accent" id="btn-start" style="font-size:16px; padding:14px 40px; margin:10px 0;">▶ Играть</button>
-  
   <div class="referral-box">
     <div style="font-weight:600; margin-bottom:8px;">🎁 Пригласи друга = +1 пазл бесплатно</div>
     <button class="btn btn-success" id="btn-share">📤 Поделиться</button>
-    <div class="referral-link" id="ref-link" style="display:none;">https://t.me/girls_puzzle_bot?start=ref_12345</div>
+    <div class="referral-link" id="ref-link" style="display:none;"></div>
   </div>
-  
   <button class="btn btn-exclusive" id="btn-unlock-pack">🔓 Открыть пазлы за ⭐️</button>
 </div>
 
-<!-- UNLOCK PACKAGES MODAL -->
+<!-- UNLOCK PACKAGES -->
 <div id="unlock-overlay" class="overlay hidden">
   <h2>🔓 Открыть пазлы</h2>
   <div style="color:var(--tg-hint); font-size:14px; margin-bottom:15px; text-align:center;">
     Первые 5 пазлов — бесплатно.<br>Открывайте пакеты со скидкой!
   </div>
-  
   <div class="unlock-package best" data-count="7" data-price="7">
     <div class="unlock-info"><div class="unlock-title">🔓 7 пазлов</div><div class="unlock-save">💰 Выгода 4⭐️</div></div>
     <div class="unlock-price">7 ⭐️</div>
@@ -182,7 +146,6 @@
     <div class="unlock-info"><div class="unlock-title">🔓 1 пазл</div></div>
     <div class="unlock-price">3 ⭐️</div>
   </div>
-  
   <button class="btn btn-outline" id="btn-back-unlock" style="margin-top:15px;">← Назад</button>
 </div>
 
@@ -194,7 +157,7 @@
   <button class="btn btn-outline" id="btn-to-menu">📋 В меню</button>
 </div>
 
-<!-- VIP MODAL -->
+<!-- VIP -->
 <div id="vip-overlay" class="overlay hidden">
   <h2>👑 VIP Подписка</h2>
   <div style="text-align:left; max-width:400px; margin:0 auto 20px;">
@@ -214,7 +177,14 @@ const CONFIG = {
   IMAGE_EXTENSION: '.jpg',
   MAX_AUTO_PACKS: 15,
   STORAGE_KEY: 'puzzle_save_v6',
-  REWARD_PER_WIN: (size) => size * 5,
+  // === НОВАЯ СИСТЕМА НАГРАД ===
+  REWARD_PER_WIN: (difficulty) => {
+    if (difficulty === 3) return 2;
+    if (difficulty === 4) return 3;
+    if (difficulty === 5) return 4;
+    if (difficulty === 6) return 5;
+    return 2; // fallback
+  },
   WEEKLY_BONUS_AMOUNT: 1,
   WEEK_COOLDOWN: 7 * 24 * 60 * 60 * 1000
 };
@@ -244,11 +214,6 @@ let state = {
 
 let saveTimeout = null;
 let isSaving = false;
-
-function getTotalStars() {
-  return state.starsEarned + state.starsBought;
-}
-
 let tiles = [], selected = null, solved = false, timeUp = false;
 let allPacks = [];
 
@@ -267,14 +232,10 @@ async function init() {
   showMenu();
   
   tg.onClose(() => { if (isSaving) return; saveProgressSync(); });
-  
-  tg.BackButton.onClick(() => {
-    if (state.isPlaying) showMenu();
-    else tg.close();
-  });
+  tg.BackButton.onClick(() => { if (state.isPlaying) showMenu(); else tg.close(); });
 }
 
-// ================= REFERRAL CHECK =================
+// ================= REFERRAL =================
 function checkReferral() {
   const startParam = tg.initDataUnsafe?.start_param;
   if (startParam && startParam.startsWith('ref_') && !state.isReferred) {
@@ -286,7 +247,7 @@ function checkReferral() {
   }
 }
 
-// ================= DYNAMIC PACKS =================
+// ================= PACKS =================
 function generatePackList() {
   allPacks = [];
   for (let i = 1; i <= CONFIG.MAX_AUTO_PACKS; i++) {
@@ -303,7 +264,7 @@ function generatePackList() {
   }
 }
 
-// ================= PROGRESS =================
+// ================= PROGRESS (СОХРАНЕНИЕ НЕ МЕНЯЕТСЯ!) =================
 function loadProgress() {
   return new Promise((resolve) => {
     if (!tg.CloudStorage?.getItem) { console.warn('CloudStorage не доступен'); resolve(); return; }
@@ -312,6 +273,7 @@ function loadProgress() {
       if (value) {
         try {
           const saved = JSON.parse(value);
+          // ✅ Загружаем ВСЕ данные как есть - прогресс не сбрасывается!
           state = { ...state, ...saved };
           console.log('✅ Загружено:', state);
         } catch(e) { console.error('❌ Ошибка парсинга:', e); }
@@ -333,7 +295,7 @@ function saveProgressSync() {
   tg.CloudStorage.setItem(CONFIG.STORAGE_KEY, data, (err) => {
     isSaving = false;
     if (err) console.error('❌ Ошибка сохранения:', err);
-    else console.log('💾 Сохранено:', state);
+    else console.log('💾 Сохранено');
   });
 }
 
@@ -349,6 +311,8 @@ function updateUI() {
   document.getElementById('difficulty').textContent = `${state.difficulty}×${state.difficulty}`;
   tg.BackButton[state.isPlaying ? 'show' : 'hide']();
 }
+
+function getTotalStars() { return state.starsEarned + state.starsBought; }
 
 function updateBonusUI() {
   const btn = document.getElementById('btn-bonus');
@@ -398,9 +362,7 @@ function startGame() {
   document.getElementById('vip-overlay').classList.add('hidden');
   state.isPlaying = true;
   state.timeLeft = state.timeLimit;
-  solved = false;
-  timeUp = false;
-  selected = null;
+  solved = false; timeUp = false; selected = null;
   generateBoard();
   startTimer();
   updateUI();
@@ -448,10 +410,8 @@ function isAdjacent(tile1, tile2) {
   const idx1 = tilesArr.indexOf(tile1);
   const idx2 = tilesArr.indexOf(tile2);
   if (idx1 === -1 || idx2 === -1) return false;
-  const row1 = Math.floor(idx1 / state.difficulty);
-  const col1 = idx1 % state.difficulty;
-  const row2 = Math.floor(idx2 / state.difficulty);
-  const col2 = idx2 % state.difficulty;
+  const row1 = Math.floor(idx1 / state.difficulty), col1 = idx1 % state.difficulty;
+  const row2 = Math.floor(idx2 / state.difficulty), col2 = idx2 % state.difficulty;
   return (row1 === row2 && Math.abs(col1 - col2) === 1) || (col1 === col2 && Math.abs(row1 - row2) === 1);
 }
 
@@ -489,63 +449,41 @@ function showToast(msg) {
   setTimeout(() => toast.style.opacity = '0', 1500);
 }
 
-    function checkWin() {
-      if(solved || timeUp) return;
-      const b = document.getElementById('board');
-      let ok = true;
-      Array.from(b.children).forEach((t, i) => {
-        if(parseInt(t.dataset.correct) !== i) ok = false;
-      });
+// === ПРОВЕРКА ПОБЕДЫ С НОВОЙ СИСТЕМОЙ НАГРАД ===
+function checkWin() {
+  if(solved || timeUp) return;
+  const b = document.getElementById('board');
+  let ok = true;
+  Array.from(b.children).forEach((t, i) => {
+    if(parseInt(t.dataset.correct) !== i) ok = false;
+  });
 
-      if(ok) {
-        solved = true; 
-        clearInterval(state.interval);
-        
-        const pack = PACKS[state.packIdx];
-        if(!state.done[pack.id]) state.done[pack.id] = {};
-        state.done[pack.id][state.size] = true;
-        
-        // === ИЗМЕНЕНИЕ ЗДЕСЬ: НОВАЯ ЛОГИКА ЗВЕЗД ===
-        let stars = 0;
-        if (state.size === 3) stars = 2;
-        else if (state.size === 4) stars = 3;
-        else if (state.size === 5) stars = 4;
-        else if (state.size === 6) stars = 5;
-        
-        state.pts += stars; // Добавляем звезды, а не умножаем на 10
-        // ============================================
-        
-        save();
+  if(ok) {
+    solved = true; 
+    clearInterval(state.timer);
+    
+    const packId = allPacks[state.currentPack].id;
+    
+    // === КЛЮЧЕВОЙ МОМЕНТ: Проверяем, был ли уже пройден этот пазл ===
+    const alreadyCompleted = state.completed[packId]?.[state.difficulty] === true;
+    
+    if (!alreadyCompleted) {
+      // ✅ Только если пазл пройден ВПЕРВЫЕ - даём награду
+      if(!state.completed[packId]) state.completed[packId] = {};
+      state.completed[packId][state.difficulty] = true;
+      
+      // === НОВАЯ СИСТЕМА НАГРАД ===
+      const stars = CONFIG.REWARD_PER_WIN(state.difficulty);
+      state.starsEarned += stars;
+      
+      showToast(`Собрано! +${stars}⭐️`);
+    }
+    
+    saveProgress(); // ✅ Сохраняем прогресс (звёзды + галочки)
 
-        const toast = document.getElementById('toast');
-        toast.style.opacity = 1;
-        
-        setTimeout(() => {
-          toast.style.opacity = 0;
-          
-          if (state.size === 6) {
-            showMenu();
-          } else {
-            if (state.packIdx === 9) {
-              const sizeIdx = SIZES.indexOf(state.size);
-              if (sizeIdx < SIZES.length - 1) {
-                state.packIdx = 0; 
-                const nextSize = SIZES[sizeIdx + 1];
-                const btn = document.querySelector(`.difficulty-btn[data-size="${nextSize}"]`);
-                if (btn) btn.click();
-                startGame(false);
-              } else {
-                state.packIdx = 0;
-                const btn = document.querySelector(`.difficulty-btn[data-size="6"]`);
-                if (btn) btn.click();
-                startGame(false);
-              }
-            } else {
-              state.packIdx++;
-              startGame(false);
-            }
-          }
-        }, 1200);
+    setTimeout(() => {
+      showMenu(); // Возврат в меню
+    }, 1200);
   }
 }
 
@@ -571,12 +509,12 @@ function updateTimerDisplay() {
   el.classList.toggle('warning', state.timeLeft <= 10);
 }
 
-// ================= МОНЕТИЗАЦИЯ & БОНУСЫ =================
+// ================= МОНЕТИЗАЦИЯ =================
 function claimBonus() {
   const now = Date.now();
   if (!state.lastBonusClaim || (now - state.lastBonusClaim >= CONFIG.WEEK_COOLDOWN)) {
     state.starsEarned += CONFIG.WEEKLY_BONUS_AMOUNT;
-    state.lastBonusClaim = now;
+    state.lastBonusClaim = now; // ✅ Таймер бонуса сохраняется
     saveProgressSync();
     updateBonusUI();
     updateUI();
@@ -584,53 +522,32 @@ function claimBonus() {
   }
 }
 
-function topUpStars() {
-  tg.showAlert('💳 Скоро: оплата через Telegram Stars.');
-}
+function topUpStars() { tg.showAlert('💳 Скоро: оплата через Telegram Stars.'); }
 
 function spendStars(amount) {
   let remaining = amount;
-  if (state.starsBought >= remaining) {
-    state.starsBought -= remaining;
-    remaining = 0;
-  } else {
-    remaining -= state.starsBought;
-    state.starsBought = 0;
-  }
-  if (remaining > 0 && state.starsEarned >= remaining) {
-    state.starsEarned -= remaining;
-  }
+  if (state.starsBought >= remaining) { state.starsBought -= remaining; remaining = 0; }
+  else { remaining -= state.starsBought; state.starsBought = 0; }
+  if (remaining > 0 && state.starsEarned >= remaining) { state.starsEarned -= remaining; }
   saveProgressSync();
   updateUI();
 }
 
 function unlockPacks(count, price) {
-  if (getTotalStars() < price) {
-    tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - getTotalStars()}`);
-    return;
-  }
+  if (getTotalStars() < price) { tg.showAlert(`Недостаточно ⭐️! Нужно ещё ${price - getTotalStars()}`); return; }
   let toUnlock = count;
-  if (state.freeUnlocks > 0) {
-    const used = Math.min(state.freeUnlocks, toUnlock);
-    toUnlock -= used;
-    state.freeUnlocks -= used;
-  }
+  if (state.freeUnlocks > 0) { const used = Math.min(state.freeUnlocks, toUnlock); toUnlock -= used; state.freeUnlocks -= used; }
   const locked = allPacks.filter(p => !p.isUnlocked).slice(0, toUnlock);
   locked.forEach(p => { if (!state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
   spendStars(price);
-  generatePackList();
-  renderPacks();
-  updateUI();
+  generatePackList(); renderPacks(); updateUI();
   tg.showAlert(`✅ Открыто ${locked.length} пазлов!`);
   document.getElementById('unlock-overlay').classList.add('hidden');
   document.getElementById('menu-overlay').classList.remove('hidden');
 }
 
 function buyVIP() {
-  if (getTotalStars() < 60) {
-    tg.showAlert(`Недостаточно ⭐️ для VIP!`);
-    return;
-  }
+  if (getTotalStars() < 60) { tg.showAlert(`Недостаточно ⭐️ для VIP!`); return; }
   spendStars(60);
   state.vip = { active: true, until: Date.now() + 30 * 24 * 60 * 60 * 1000 };
   allPacks.forEach(p => { if (!p.isFree && !state.unlocked.includes(p.id)) state.unlocked.push(p.id); });
@@ -644,67 +561,25 @@ function shareReferral() {
   const botUsername = 'girls_puzzle_bot';
   const userId = tg.initDataUnsafe?.user?.id || 'user';
   const link = `https://t.me/${botUsername}?start=ref_${userId}`;
-  
-  // Показываем ссылку
   const refLinkEl = document.getElementById('ref-link');
   refLinkEl.textContent = link;
   refLinkEl.style.display = 'block';
-  refLinkEl.style.userSelect = 'text';
-  refLinkEl.style.webkitUserSelect = 'text';
-  refLinkEl.style.padding = '12px';
-  refLinkEl.style.background = 'rgba(255,255,255,0.1)';
-  refLinkEl.style.borderRadius = '8px';
-  refLinkEl.style.margin = '10px 0';
   
-  // Создаём кнопки, если их ещё нет
   let copyBtn = document.getElementById('ref-copy-btn');
-  let shareBtn = document.getElementById('ref-share-btn');
-  
   if (!copyBtn) {
     copyBtn = document.createElement('button');
     copyBtn.id = 'ref-copy-btn';
     copyBtn.className = 'btn btn-success';
     copyBtn.style.marginTop = '10px';
-    copyBtn.textContent = '📋 Копировать ссылку';
+    copyBtn.textContent = '📋 Копировать';
     refLinkEl.parentNode.insertBefore(copyBtn, refLinkEl.nextSibling);
-    
-    shareBtn = document.createElement('button');
-    shareBtn.id = 'ref-share-btn';
-    shareBtn.className = 'btn btn-accent';
-    shareBtn.style.marginTop = '10px';
-    shareBtn.textContent = '📤 Отправить другу';
-    refLinkEl.parentNode.insertBefore(shareBtn, copyBtn.nextSibling);
-    
-    // Обработчик копирования
     copyBtn.onclick = function() {
-      const tempInput = document.createElement('textarea');
-      tempInput.value = link;
-      tempInput.style.position = 'fixed';
-      tempInput.style.top = '-9999px';
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      
-      try {
-        document.execCommand('copy');
-        tg.showAlert('✅ Ссылка скопирована!\n\nТеперь вставь её другу (Ctrl+V или долгое нажатие)');
-      } catch (err) {
-        tg.showAlert('Скопируй ссылку вручную:\n\n' + link);
-      }
-      
-      document.body.removeChild(tempInput);
-    };
-    
-    // Обработчик отправки
-    shareBtn.onclick = function() {
-      // Открываем список чатов для выбора друга
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🎁 Играй в пазлы со мной!`);
+      navigator.clipboard?.writeText(link).then(() => tg.showAlert('✅ Ссылка скопирована!'));
     };
   }
-  
-  // Показываем сообщение
-  tg.showAlert('🎁 Твоя реферальная ссылка:\n\n' + link + '\n\nНажми на кнопки ниже, чтобы скопировать или отправить!');
-}  
-  
+  tg.showAlert('🎁 Твоя ссылка:\n' + link);
+}
+
 // ================= EVENT LISTENERS =================
 document.addEventListener('DOMContentLoaded', init);
 document.getElementById('btn-menu').onclick = showMenu;
